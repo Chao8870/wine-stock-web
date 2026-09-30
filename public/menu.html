@@ -29,28 +29,26 @@
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- ปุ่มที่ 1: บันทึกรายการใหม่ -->
-            <a href="/select-type.html" class="bg-stone-950 border border-stone-800 hover:border-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] rounded-2xl p-8 flex flex-col items-center justify-center transition group">
+            <!-- ปุ่ม 1-3: เพิ่ม onclick="checkAccess(event)" เพื่อดักจับสิทธิ์ -->
+            <a href="/select-type.html" onclick="checkAccess(event)" class="bg-stone-950 border border-stone-800 hover:border-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] rounded-2xl p-8 flex flex-col items-center justify-center transition group">
                 <span class="text-5xl mb-4 group-hover:scale-110 transition">📝</span>
                 <h3 class="text-xl font-semibold text-amber-500">บันทึกรายการสินค้าใหม่</h3>
                 <p class="text-sm text-stone-400 mt-2">เพิ่มไวน์รายการใหม่เข้าสู่ระบบ</p>
             </a>
 
-            <!-- ปุ่มที่ 2: บันทึกเข้า -->
-            <a href="/index.html" class="bg-stone-950 border border-stone-800 hover:border-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] rounded-2xl p-8 flex flex-col items-center justify-center transition group">
+            <a href="/index.html" onclick="checkAccess(event)" class="bg-stone-950 border border-stone-800 hover:border-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] rounded-2xl p-8 flex flex-col items-center justify-center transition group">
                 <span class="text-5xl mb-4 group-hover:scale-110 transition">📥</span>
                 <h3 class="text-xl font-semibold text-emerald-500">บันทึกเข้า (Stock In)</h3>
                 <p class="text-sm text-stone-400 mt-2">เพิ่มจำนวนขวดไวน์เข้าสต็อก</p>
             </a>
 
-            <!-- ปุ่มที่ 3: บันทึกออก -->
-            <a href="/index.html" class="bg-stone-950 border border-stone-800 hover:border-red-500 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] rounded-2xl p-8 flex flex-col items-center justify-center transition group">
+            <a href="/index.html" onclick="checkAccess(event)" class="bg-stone-950 border border-stone-800 hover:border-red-500 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] rounded-2xl p-8 flex flex-col items-center justify-center transition group">
                 <span class="text-5xl mb-4 group-hover:scale-110 transition">📤</span>
                 <h3 class="text-xl font-semibold text-red-500">บันทึกออก (Stock Out)</h3>
                 <p class="text-sm text-stone-400 mt-2">ตัดสต็อกเมื่อขายหรือนำไปใช้</p>
             </a>
 
-            <!-- ปุ่มที่ 4: ยอดคงเหลือ -->
+            <!-- ปุ่มที่ 4: ยอดคงเหลือ (ทุกคนเข้าได้) -->
             <a href="/index.html" class="bg-stone-950 border border-stone-800 hover:border-blue-500 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] rounded-2xl p-8 flex flex-col items-center justify-center transition group">
                 <span class="text-5xl mb-4 group-hover:scale-110 transition">📊</span>
                 <h3 class="text-xl font-semibold text-blue-500">ยอดคงเหลือ (Balance)</h3>
@@ -61,6 +59,15 @@
 
     <script>
         document.getElementById('user-display').innerText = `👤 ${localStorage.getItem('userName')}`;
+        
+        function checkAccess(event) {
+            // ถ้าเป็นบัญชี Demo ให้ยกเลิกการไปหน้าอื่น และขึ้นแจ้งเตือน
+            if (localStorage.getItem('userRole') === 'viewer') {
+                event.preventDefault();
+                alert('⚠️ สิทธิ์ Demo สามารถดูข้อมูล [ยอดคงเหลือ] ได้เพียงอย่างเดียวครับ');
+            }
+        }
+
         function logout() {
             localStorage.clear();
             window.location.href = '/login.html';
