@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เพิ่มรายการสินค้าใหม่</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Prompt', sans-serif; } </style>
+</head>
+<body class="bg-stone-900 text-stone-100 min-h-screen flex flex-col">
+
+    <script>
+        if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/login.html';
+    </script>
+
+    <header class="bg-stone-950 border-b border-stone-800 py-4 px-6 flex justify-between items-center">
+        <div class="flex items-center space-x-4">
+            <a href="/menu.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1.5 rounded-lg text-sm transition">⬅️ กลับเมนูหลัก</a>
+            <h1 class="text-xl font-semibold text-amber-500 hidden sm:block">บันทึกรายการสินค้าใหม่</h1>
+        </div>
+    </header>
+
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="bg-stone-950 border border-stone-800 rounded-2xl max-w-lg w-full p-8 shadow-2xl">
+            <div class="text-center mb-8">
+                <span class="text-4xl">📝</span>
+                <h2 class="text-2xl font-bold text-stone-100 mt-2">เพิ่มข้อมูลไวน์ใหม่</h2>
+                <p class="text-sm text-stone-400">กรอกข้อมูลเพื่อบันทึกเข้าสู่ฐานข้อมูล</p>
+            </div>
+
+            <form id="add-form" onsubmit="saveProduct(event)" class="space-y-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-stone-400 mb-1">รหัสสินค้า (ID)</label>
+                        <input type="text" id="wine-id" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="เช่น W00141">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-stone-400 mb-1">รหัสบาร์โค้ด (Barcode)</label>
+                        <input type="text" id="barcode" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="ยิงบาร์โค้ดที่นี่">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs text-stone-400 mb-1">ชื่อไวน์ (Wine Name)</label>
+                    <input type="text" id="name" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="เช่น Penfolds Bin 389">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-stone-400 mb-1">ข้อมูล (ประเภท, ประเทศ, หรือรายละเอียดอื่นๆ)</label>
+                    <input type="text" id="info" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="เช่น Red Wine, Australia">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-stone-400 mb-1">ราคาขาย (บาท)</label>
+                    <input type="number" id="price" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="0">
+                </div>
+                
+                <button type="submit" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-medium p-3 rounded-lg text-sm transition mt-6">
+                    💾 บันทึกข้อมูลเข้า Database
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        async function saveProduct(event) {
+            event.preventDefault();
+            
+            const newWine = {
+                id: document.getElementById('wine-id').value,
+                barcode: document.getElementById('barcode').value,
+                name: document.getElementById('name').value,
+                info: document.getElementById('info').value,
+                price: parseFloat(document.getElementById('price').value)
+            };
+
+            try {
+                const response = await fetch('/api/wines', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newWine)
+                });
+                
+                if (response.ok) {
+                    alert('✅ บันทึกข้อมูลสินค้าใหม่เรียบร้อยแล้ว!');
+                    document.getElementById('add-form').reset();
+                    // บันทึกเสร็จให้เด้งกลับไปหน้าเมนู
+                    window.location.href = '/menu.html';
+                } else {
+                    alert('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+    </script>
+</body>
+</html>
