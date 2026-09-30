@@ -83,31 +83,34 @@
             document.getElementById('type').value = "ไม่ระบุ";
         }
 
-        // ฟังก์ชันหารหัสที่มากที่สุดในระบบ แล้วบวกเพิ่ม 1 อัตโนมัติ
+        // ฟังก์ชันหารหัสที่มากที่สุด (แบบป้องกัน Cache และกรองข้อมูลขยะ)
         async function generateNextID() {
             try {
-                const response = await fetch('/api/wines');
+                // เติม ?t=... เพื่อหลอกเบราว์เซอร์ว่านี่คือลิงก์ใหม่ จะได้ดึงข้อมูลใหม่ล่าสุดเสมอ (แก้ปัญหา Cache)
+                const response = await fetch('/api/wines?t=' + new Date().getTime());
                 const wines = await response.json();
                 
                 let maxNum = 0;
                 
-                wines.forEach(wine => {
-                    if (wine && wine.id) {
-                        // ดึงเฉพาะตัวเลขออกมาจากรหัส (เช่น 'W00140' จะเหลือแค่ 140)
-                        const idStr = String(wine.id).replace(/\D/g, ''); 
-                        const num = parseInt(idStr);
-                        
-                        // ถ้าระบบเจอตัวเลขที่มากกว่า ให้จำตัวเลขนั้นไว้
-                        if (!isNaN(num) && num > maxNum) {
-                            maxNum = num;
+                if (Array.isArray(wines)) {
+                    wines.forEach(wine => {
+                        if (wine && wine.id) {
+                            // ดึงเฉพาะตัวเลขออกมา
+                            const idStr = String(wine.id).replace(/\D/g, ''); 
+                            const num = parseInt(idStr);
+                            
+                            // กรองเฉพาะรหัสปกติ (ไม่เกิน 6 หลัก) เพื่อป้องกันรหัส Timestamp แบบเก่า (1727xxx) มาปน
+                            if (!isNaN(num) && num > maxNum && num < 999999) {
+                                maxNum = num;
+                            }
                         }
-                    }
-                });
+                    });
+                }
                 
-                // นำเลขที่มากที่สุดมาบวก 1 เป็นรายการใหม่
+                // นำเลขที่มากที่สุดมาบวก 1 
                 const nextNum = maxNum + 1;
                 
-                // เติมเลข 0 ข้างหน้าให้ครบ 5 หลัก (รหัสไวน์) และ 6 หลัก (บาร์โค้ด)
+                // อัปเดตขึ้นหน้าจอ
                 document.getElementById('wine-id').value = 'W' + nextNum.toString().padStart(5, '0');
                 document.getElementById('barcode').value = 'VACA' + nextNum.toString().padStart(6, '0');
                 
@@ -138,7 +141,11 @@
             try {
                 const response = await fetch('/api/wines', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        // ป้องกัน Cache ตอนส่งข้อมูล
+                        'Cache-Control': 'no-cache' 
+                    },
                     body: JSON.stringify(newWine)
                 });
                 
