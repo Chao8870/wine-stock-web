@@ -46,11 +46,9 @@
                     <input type="text" id="name" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="เช่น Penfolds Bin 389">
                 </div>
 
-                <!-- แยก 3 ช่อง: ประเภท, ประเทศ, ขนาดขวด -->
                 <div class="grid grid-cols-3 gap-4">
                     <div>
                         <label class="block text-xs text-stone-400 mb-1">ประเภท</label>
-                        <!-- ช่องนี้ล็อกการแก้ไข (readonly) -->
                         <input type="text" id="type" readonly class="w-full bg-stone-800 border border-stone-700 rounded-lg p-3 text-sm text-stone-300 font-semibold cursor-not-allowed focus:outline-none" value="">
                     </div>
                     <div>
@@ -76,7 +74,7 @@
     </main>
 
     <script>
-        // ดึงประเภทไวน์จากหน้าเมนูมาใส่ช่อง "ประเภท" อัตโนมัติ
+        // รับค่า Red / White จากหน้าเมนูก่อนหน้า
         const urlParams = new URLSearchParams(window.location.search);
         const wineType = urlParams.get('type');
         if (wineType) {
@@ -85,35 +83,54 @@
             document.getElementById('type').value = "ไม่ระบุ";
         }
 
+        // ฟังก์ชันสร้างรหัสรันอัตโนมัติ (แก้ไขให้ฉลาดและป้องกัน Error)
         async function generateNextID() {
             try {
                 const response = await fetch('/api/wines');
                 const wines = await response.json();
                 
                 let maxIdNum = 0;
-                wines.forEach(wine => {
-                    const numMatch = wine.id.match(/\d+/);
-                    if (numMatch) {
-                        const num = parseInt(numMatch[0]);
-                        if (num > maxIdNum) maxIdNum = num;
-                    }
-                });
                 
-                const nextNum = maxIdNum + 1;
+                if (Array.isArray(wines)) {
+                    wines.forEach(wine => {
+                        // ป้องกัน Error หากไม่มีฟิลด์ id หรือเป็นตัวเลขเพียวๆ
+                        if (wine && wine.id) {
+                            const idStr = String(wine.id); 
+                            const numMatch = idStr.match(/\d+/); // ดึงเฉพาะตัวเลขออกมา
+                            
+                            if (numMatch) {
+                                const num = parseInt(numMatch[0]);
+                                // ตัดปัญหาเอารหัส Timestamp ยาวๆ (เช่น 169xxxx) มาบวกเพิ่ม
+                                if (num > maxIdNum && num < 999999) {
+                                    maxIdNum = num;
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // ถ้าระบบหาตัวเลขไม่เจอเลย ให้เริ่มที่ 1
+                const nextNum = maxIdNum > 0 ? maxIdNum + 1 : 1;
+                
+                // อัปเดตขึ้นหน้าจอ
                 document.getElementById('wine-id').value = 'W' + nextNum.toString().padStart(5, '0');
                 document.getElementById('barcode').value = 'VACA' + nextNum.toString().padStart(6, '0');
                 
             } catch (error) {
                 console.error('Error generating ID:', error);
+                // หากเซิร์ฟเวอร์มีปัญหา จะขึ้นค่าพื้นฐานให้แทนเพื่อไม่ให้หน้าค้าง
+                document.getElementById('wine-id').value = 'W00001';
+                document.getElementById('barcode').value = 'VACA000001';
             }
         }
 
+        // เรียกใช้งานทันทีที่เปิดหน้านี้
         generateNextID();
 
+        // ฟังก์ชันบันทึกข้อมูลเข้า Database
         async function saveProduct(event) {
             event.preventDefault();
             
-            // ดึงค่าทั้งหมดเพื่อส่งให้หลังบ้าน
             const newWine = {
                 id: document.getElementById('wine-id').value,
                 barcode: document.getElementById('barcode').value,
@@ -139,6 +156,7 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
+                alert('❌ เกิดข้อผิดพลาด: ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้');
             }
         }
     </script>
