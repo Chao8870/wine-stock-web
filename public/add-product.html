@@ -16,7 +16,7 @@
 
     <header class="bg-stone-950 border-b border-stone-800 py-4 px-6 flex justify-between items-center">
         <div class="flex items-center space-x-4">
-            <a href="/select-type.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1.5 rounded-lg text-sm transition">⬅️ ย้อนกลับ</a>
+            <a href="/select-type.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1.5 rounded-lg text-sm transition">⬅️️ ย้อนกลับ</a>
             <h1 class="text-xl font-semibold text-amber-500 hidden sm:block">บันทึกรายการสินค้าใหม่</h1>
         </div>
     </header>
@@ -83,48 +83,42 @@
             document.getElementById('type').value = "ไม่ระบุ";
         }
 
-        // ฟังก์ชันสร้างรหัสรันอัตโนมัติ (แก้ไขให้ฉลาดและป้องกัน Error)
+        // ฟังก์ชันหารหัสที่มากที่สุดในระบบ แล้วบวกเพิ่ม 1 อัตโนมัติ
         async function generateNextID() {
             try {
                 const response = await fetch('/api/wines');
                 const wines = await response.json();
                 
-                let maxIdNum = 0;
+                let maxNum = 0;
                 
-                if (Array.isArray(wines)) {
-                    wines.forEach(wine => {
-                        // ป้องกัน Error หากไม่มีฟิลด์ id หรือเป็นตัวเลขเพียวๆ
-                        if (wine && wine.id) {
-                            const idStr = String(wine.id); 
-                            const numMatch = idStr.match(/\d+/); // ดึงเฉพาะตัวเลขออกมา
-                            
-                            if (numMatch) {
-                                const num = parseInt(numMatch[0]);
-                                // ตัดปัญหาเอารหัส Timestamp ยาวๆ (เช่น 169xxxx) มาบวกเพิ่ม
-                                if (num > maxIdNum && num < 999999) {
-                                    maxIdNum = num;
-                                }
-                            }
+                wines.forEach(wine => {
+                    if (wine && wine.id) {
+                        // ดึงเฉพาะตัวเลขออกมาจากรหัส (เช่น 'W00140' จะเหลือแค่ 140)
+                        const idStr = String(wine.id).replace(/\D/g, ''); 
+                        const num = parseInt(idStr);
+                        
+                        // ถ้าระบบเจอตัวเลขที่มากกว่า ให้จำตัวเลขนั้นไว้
+                        if (!isNaN(num) && num > maxNum) {
+                            maxNum = num;
                         }
-                    });
-                }
+                    }
+                });
                 
-                // ถ้าระบบหาตัวเลขไม่เจอเลย ให้เริ่มที่ 1
-                const nextNum = maxIdNum > 0 ? maxIdNum + 1 : 1;
+                // นำเลขที่มากที่สุดมาบวก 1 เป็นรายการใหม่
+                const nextNum = maxNum + 1;
                 
-                // อัปเดตขึ้นหน้าจอ
+                // เติมเลข 0 ข้างหน้าให้ครบ 5 หลัก (รหัสไวน์) และ 6 หลัก (บาร์โค้ด)
                 document.getElementById('wine-id').value = 'W' + nextNum.toString().padStart(5, '0');
                 document.getElementById('barcode').value = 'VACA' + nextNum.toString().padStart(6, '0');
                 
             } catch (error) {
                 console.error('Error generating ID:', error);
-                // หากเซิร์ฟเวอร์มีปัญหา จะขึ้นค่าพื้นฐานให้แทนเพื่อไม่ให้หน้าค้าง
                 document.getElementById('wine-id').value = 'W00001';
                 document.getElementById('barcode').value = 'VACA000001';
             }
         }
 
-        // เรียกใช้งานทันทีที่เปิดหน้านี้
+        // สั่งให้ระบบดึงเลขทันทีที่เปิดหน้านี้
         generateNextID();
 
         // ฟังก์ชันบันทึกข้อมูลเข้า Database
