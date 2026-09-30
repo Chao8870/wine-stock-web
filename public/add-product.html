@@ -16,7 +16,7 @@
 
     <header class="bg-stone-950 border-b border-stone-800 py-4 px-6 flex justify-between items-center">
         <div class="flex items-center space-x-4">
-            <a href="/menu.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1.5 rounded-lg text-sm transition">⬅️ กลับเมนูหลัก</a>
+            <a href="/select-type.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1.5 rounded-lg text-sm transition">⬅️ ย้อนกลับ</a>
             <h1 class="text-xl font-semibold text-amber-500 hidden sm:block">บันทึกรายการสินค้าใหม่</h1>
         </div>
     </header>
@@ -100,6 +100,13 @@
 
         // เรียกใช้งานฟังก์ชันทันที
         generateNextID();
+
+       // ดึงประเภทไวน์จาก URL มาใส่ในช่องข้อมูลให้อัตโนมัติ
+        const urlParams = new URLSearchParams(window.location.search);
+        const wineType = urlParams.get('type');
+        if (wineType) {
+            document.getElementById('info').value = wineType + ' Wine';
+        }
 
         // ฟังก์ชันบันทึกข้อมูล
         async function saveProduct(event) {
