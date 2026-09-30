@@ -15,7 +15,10 @@
     </script>
 
     <header class="bg-stone-950 border-b border-stone-800 py-4 px-6 flex justify-between items-center sticky top-0 z-10">
-        <h1 class="text-xl font-semibold text-amber-500">🍷 Wine Stock Management</h1>
+        <div class="flex items-center space-x-4">
+            <a href="/menu.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1.5 rounded-lg text-sm transition">⬅️ กลับเมนูหลัก</a>
+            <h1 class="text-xl font-semibold text-amber-500 hidden sm:block">🍷 Wine Stock Management</h1>
+        </div>
         <div class="flex items-center space-x-4">
             <span id="user-display" class="text-sm text-stone-300 bg-stone-900 px-3 py-1 rounded-lg border border-stone-800"></span>
             <button onclick="logout()" class="bg-stone-800 hover:bg-red-600 text-stone-300 hover:text-white px-3 py-1.5 rounded-lg text-xs transition">ออกจากระบบ</button>
@@ -172,5 +175,12 @@
 
         fetchWines();
     </script>
+// ตรวจสอบ URL ว่ามีการสั่งให้เปิด Modal เพิ่มสินค้าหรือไม่
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'add') {
+            openAddModal();
+            // ลบพารามิเตอร์ออกจาก URL เพื่อความสวยงาม
+            window.history.replaceState({}, document.title, "/index.html");
+        }
 </body>
 </html>

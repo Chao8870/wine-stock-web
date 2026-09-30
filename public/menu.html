@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu - Wine Stock Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Prompt', sans-serif; } </style>
+</head>
+<body class="bg-stone-900 text-stone-100 min-h-screen">
+
+    <script>
+        if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/login.html';
+    </script>
+
+    <header class="bg-stone-950 border-b border-stone-800 py-4 px-6 flex justify-between items-center">
+        <h1 class="text-xl font-semibold text-amber-500">🍷 Wine Cellar</h1>
+        <div class="flex items-center space-x-4">
+            <span id="user-display" class="text-sm text-stone-300 bg-stone-900 px-3 py-1 rounded-lg border border-stone-800"></span>
+            <button onclick="logout()" class="bg-stone-800 hover:bg-red-600 text-stone-300 hover:text-white px-3 py-1.5 rounded-lg text-xs transition">ออกจากระบบ</button>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-12">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl font-bold text-stone-100">เมนูหลัก (Main Menu)</h2>
+            <p class="text-stone-400 mt-2">เลือกระบบที่คุณต้องการจัดการ</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- ปุ่มที่ 1: บันทึกรายการใหม่ -->
+            <a href="/index.html?action=add" class="bg-stone-950 border border-stone-800 hover:border-amber-500 hover:shadow-[0_0_15px_rgba(245,158,11,0.2)] rounded-2xl p-8 flex flex-col items-center justify-center transition group">
+                <span class="text-5xl mb-4 group-hover:scale-110 transition">📝</span>
+                <h3 class="text-xl font-semibold text-amber-500">บันทึกรายการสินค้าใหม่</h3>
+                <p class="text-sm text-stone-400 mt-2">เพิ่มไวน์รายการใหม่เข้าสู่ระบบ</p>
+            </a>
+
+            <!-- ปุ่มที่ 2: บันทึกเข้า -->
+            <a href="/index.html" class="bg-stone-950 border border-stone-800 hover:border-emerald-500 hover:shadow-[0_0_15px_rgba(16,185,129,0.2)] rounded-2xl p-8 flex flex-col items-center justify-center transition group">
+                <span class="text-5xl mb-4 group-hover:scale-110 transition">📥</span>
+                <h3 class="text-xl font-semibold text-emerald-500">บันทึกเข้า (Stock In)</h3>
+                <p class="text-sm text-stone-400 mt-2">เพิ่มจำนวนขวดไวน์เข้าสต็อก</p>
+            </a>
+
+            <!-- ปุ่มที่ 3: บันทึกออก -->
+            <a href="/index.html" class="bg-stone-950 border border-stone-800 hover:border-red-500 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)] rounded-2xl p-8 flex flex-col items-center justify-center transition group">
+                <span class="text-5xl mb-4 group-hover:scale-110 transition">📤</span>
+                <h3 class="text-xl font-semibold text-red-500">บันทึกออก (Stock Out)</h3>
+                <p class="text-sm text-stone-400 mt-2">ตัดสต็อกเมื่อขายหรือนำไปใช้</p>
+            </a>
+
+            <!-- ปุ่มที่ 4: ยอดคงเหลือ -->
+            <a href="/index.html" class="bg-stone-950 border border-stone-800 hover:border-blue-500 hover:shadow-[0_0_15px_rgba(59,130,246,0.2)] rounded-2xl p-8 flex flex-col items-center justify-center transition group">
+                <span class="text-5xl mb-4 group-hover:scale-110 transition">📊</span>
+                <h3 class="text-xl font-semibold text-blue-500">ยอดคงเหลือ (Balance)</h3>
+                <p class="text-sm text-stone-400 mt-2">ตรวจสอบรายการไวน์ทั้งหมด</p>
+            </a>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('user-display').innerText = `👤 ${localStorage.getItem('userName')}`;
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login.html';
+        }
+    </script>
+</body>
+</html>
