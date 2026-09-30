@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wine Cellar - ระบบจัดการสต็อก</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Prompt', sans-serif; } </style>
+</head>
+<body class="bg-stone-900 text-stone-100 min-h-screen">
+
+    <script>
+        if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/login.html';
+    </script>
+
+    <header class="bg-stone-950 border-b border-stone-800 py-4 px-6 flex justify-between items-center sticky top-0 z-10">
+        <h1 class="text-xl font-semibold text-amber-500">🍷 Wine Stock Management</h1>
+        <div class="flex items-center space-x-4">
+            <span id="user-display" class="text-sm text-stone-300 bg-stone-900 px-3 py-1 rounded-lg border border-stone-800"></span>
+            <button onclick="logout()" class="bg-stone-800 hover:bg-red-600 text-stone-300 hover:text-white px-3 py-1.5 rounded-lg text-xs transition">ออกจากระบบ</button>
+        </div>
+    </header>
+
+    <main class="max-w-[95%] mx-auto py-8">
+        <!-- สรุปยอดรวม -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 text-center">
+                <p class="text-xs text-stone-400">รายการไวน์ทั้งหมด</p>
+                <h3 id="total-items" class="text-2xl font-bold text-amber-400 mt-1">0</h3>
+            </div>
+            <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 text-center">
+                <p class="text-xs text-stone-400">สต็อกรวมทั้งหมด (ขวด)</p>
+                <h3 id="total-bottles" class="text-2xl font-bold text-emerald-400 mt-1">0</h3>
+            </div>
+            <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 text-center">
+                <p class="text-xs text-stone-400">เฉพาะหน้าร้าน (ขวด)</p>
+                <h3 id="total-front" class="text-2xl font-bold text-amber-200 mt-1">0</h3>
+            </div>
+            <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 text-center">
+                <p class="text-xs text-stone-400">สินค้าใกล้หมด (< 5 ขวด)</p>
+                <h3 id="low-stock-count" class="text-2xl font-bold text-red-400 mt-1">0</h3>
+            </div>
+        </div>
+
+        <div class="bg-stone-950 p-4 rounded-xl border border-stone-800 mb-6 flex flex-col sm:flex-row justify-between gap-4">
+            <input type="text" id="search-input" onkeyup="filterTable()" placeholder="ค้นหาด้วย Barcode, ชื่อไวน์ หรือ ประเทศ..." class="bg-stone-900 border border-stone-700 text-stone-100 px-4 py-2 rounded-lg text-sm w-full sm:w-96 focus:outline-none focus:border-amber-500">
+        </div>
+
+        <!-- ตารางสต็อกไวน์ (เพิ่มคอลัมน์และตำแหน่งตาม Excel) -->
+        <div class="bg-stone-950 rounded-xl border border-stone-800 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-stone-900 text-stone-400 text-xs uppercase tracking-wider border-b border-stone-800 text-center">
+                            <th class="p-4 text-left">รหัส / Barcode</th>
+                            <th class="p-4 text-left">ชื่อไวน์ & ข้อมูล</th>
+                            <th class="p-4">ราคาขาย</th>
+                            <th class="p-4 bg-stone-800/30">หน้าร้าน</th>
+                            <th class="p-4 bg-stone-800/30">หลังร้าน</th>
+                            <th class="p-4 bg-stone-800/30">บ้าน</th>
+                            <th class="p-4 text-emerald-400">คงเหลือรวม</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-table-body" class="divide-y divide-stone-800 text-sm"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('user-display').innerText = `👤 ${localStorage.getItem('userName')}`;
+        const userRole = localStorage.getItem('userRole'); // เก็บสิทธิ์การใช้งาน
+        
+        let wines = [];
+
+        async function fetchWines() {
+            const res = await fetch('/api/wines');
+            wines = await res.json();
+            renderTable(wines);
+        }
+
+        function renderTable(dataToRender) {
+            const tbody = document.getElementById('stock-table-body');
+            tbody.innerHTML = '';
+            
+            let totalBottles = 0, totalFront = 0, lowStock = 0;
+
+            dataToRender.forEach(wine => {
+                const total = wine.qty_front + wine.qty_back + wine.qty_home;
+                totalBottles += total;
+                totalFront += wine.qty_front;
+                if (total < 5) lowStock++;
+
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-stone-900/50 transition text-center';
+                tr.innerHTML = `
+                    <td class="p-4 text-left">
+                        <div class="font-semibold text-stone-200">${wine.id}</div>
+                        <div class="text-xs text-stone-500">${wine.barcode}</div>
+                    </td>
+                    <td class="p-4 text-left">
+                        <div class="font-semibold text-amber-500">${wine.name} <span class="text-stone-400">(${wine.vintage})</span></div>
+                        <div class="text-xs text-stone-400">${wine.type} • ${wine.region}, ${wine.country} • ${wine.bottle_size}ml</div>
+                    </td>
+                    <td class="p-4 text-amber-400 font-semibold">฿${wine.price.toLocaleString()}</td>
+                    
+                    <!-- หน้าร้าน -->
+                    <td class="p-4 bg-stone-800/10">
+                        <div class="flex items-center justify-center space-x-2">
+                            <button onclick="adjustQty('${wine.id}', 'qty_front', -1)" class="w-6 h-6 bg-stone-800 hover:bg-red-500 rounded text-xs">-</button>
+                            <span class="w-6 font-semibold">${wine.qty_front}</span>
+                            <button onclick="adjustQty('${wine.id}', 'qty_front', 1)" class="w-6 h-6 bg-stone-800 hover:bg-emerald-500 rounded text-xs">+</button>
+                        </div>
+                    </td>
+                    <!-- หลังร้าน -->
+                    <td class="p-4 bg-stone-800/10">
+                        <div class="flex items-center justify-center space-x-2">
+                            <button onclick="adjustQty('${wine.id}', 'qty_back', -1)" class="w-6 h-6 bg-stone-800 hover:bg-red-500 rounded text-xs">-</button>
+                            <span class="w-6 font-semibold">${wine.qty_back}</span>
+                            <button onclick="adjustQty('${wine.id}', 'qty_back', 1)" class="w-6 h-6 bg-stone-800 hover:bg-emerald-500 rounded text-xs">+</button>
+                        </div>
+                    </td>
+                    <!-- บ้าน -->
+                    <td class="p-4 bg-stone-800/10">
+                        <div class="flex items-center justify-center space-x-2">
+                            <button onclick="adjustQty('${wine.id}', 'qty_home', -1)" class="w-6 h-6 bg-stone-800 hover:bg-red-500 rounded text-xs">-</button>
+                            <span class="w-6 font-semibold">${wine.qty_home}</span>
+                            <button onclick="adjustQty('${wine.id}', 'qty_home', 1)" class="w-6 h-6 bg-stone-800 hover:bg-emerald-500 rounded text-xs">+</button>
+                        </div>
+                    </td>
+                    
+                    <!-- รวมทั้งหมด -->
+                    <td class="p-4">
+                        <span class="px-3 py-1 rounded-full text-sm font-bold ${total < 5 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}">
+                            ${total}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('total-items').innerText = dataToRender.length;
+            document.getElementById('total-bottles').innerText = totalBottles;
+            document.getElementById('total-front').innerText = totalFront;
+            document.getElementById('low-stock-count').innerText = lowStock;
+        }
+
+        async function adjustQty(id, location, amount) {
+            await fetch(`/api/wines/${id}/qty`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ location, amount })
+            });
+            fetchWines();
+        }
+
+        function filterTable() {
+            const kw = document.getElementById('search-input').value.toLowerCase();
+            const filtered = wines.filter(w => 
+                w.barcode.toLowerCase().includes(kw) || 
+                w.name.toLowerCase().includes(kw) || 
+                w.country.toLowerCase().includes(kw)
+            );
+            renderTable(filtered);
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login.html';
+        }
+
+        fetchWines();
+    </script>
+</body>
+</html>
