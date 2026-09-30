@@ -189,27 +189,7 @@ app.post('/api/wines', (req, res) => {
     wines.unshift(newWine);
     res.json(newWine);
 });
-
-// API: เพิ่มไวน์ใหม่
-app.post('/api/wines', (req, res) => {
-    const { id, barcode, name, info, price } = req.body;
-    
-    const newWine = { 
-        id: id, 
-        barcode: barcode, 
-        name: name, 
-        vintage: '',       // เว้นว่างไว้
-        type: info,        // นำข้อมูล (Info) มาใส่ในช่อง Type เพื่อให้แสดงในหน้าสต็อกได้
-        country: '', 
-        region: '', 
-        bottle_size: 750, 
-        cost_price: 0, 
-        price: price, 
-        qty_front: 0, 
-        qty_back: 0, 
-        qty_home: 0 
-    };
-    
+  
     // บันทึกเข้า Array (Database) ที่อยู่ด้านบนสุด
     wines.unshift(newWine);
     res.json(newWine);
