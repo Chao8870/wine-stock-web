@@ -32,12 +32,14 @@
             <form id="add-form" onsubmit="saveProduct(event)" class="space-y-5">
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-xs text-stone-400 mb-1">รหัสสินค้า (ID)</label>
-                        <input type="text" id="wine-id" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="เช่น W00141">
+                        <label class="block text-xs text-stone-400 mb-1">รหัสสินค้า (Auto ID)</label>
+                        <!-- เปลี่ยนเป็น Readonly และทำสีทึบ -->
+                        <input type="text" id="wine-id" readonly class="w-full bg-stone-800 border border-stone-700 rounded-lg p-3 text-sm text-emerald-400 font-semibold cursor-not-allowed focus:outline-none" value="กำลังโหลด...">
                     </div>
                     <div>
-                        <label class="block text-xs text-stone-400 mb-1">รหัสบาร์โค้ด (Barcode)</label>
-                        <input type="text" id="barcode" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="ยิงบาร์โค้ดที่นี่">
+                        <label class="block text-xs text-stone-400 mb-1">รหัสบาร์โค้ด (Auto Barcode)</label>
+                        <!-- เปลี่ยนเป็น Readonly และทำสีทึบ -->
+                        <input type="text" id="barcode" readonly class="w-full bg-stone-800 border border-stone-700 rounded-lg p-3 text-sm text-emerald-400 font-semibold cursor-not-allowed focus:outline-none" value="กำลังโหลด...">
                     </div>
                 </div>
                 
@@ -64,6 +66,42 @@
     </main>
 
     <script>
+        // ฟังก์ชันรันอัตโนมัติเมื่อเปิดหน้าเว็บ เพื่อดึงเลขล่าสุดมาบวก 1
+        async function generateNextID() {
+            try {
+                const response = await fetch('/api/wines');
+                const wines = await response.json();
+                
+                let maxIdNum = 0;
+                
+                // วนลูปหารหัสตัวเลขที่เยอะที่สุดในระบบ
+                wines.forEach(wine => {
+                    const numMatch = wine.id.match(/\d+/); // ดึงเฉพาะตัวเลขจาก W00140
+                    if (numMatch) {
+                        const num = parseInt(numMatch[0]);
+                        if (num > maxIdNum) maxIdNum = num;
+                    }
+                });
+                
+                const nextNum = maxIdNum + 1;
+                // เติม 0 ข้างหน้าให้ครบ 5 หลักสำหรับ ID และ 6 หลักสำหรับ Barcode
+                const nextIdStr = 'W' + nextNum.toString().padStart(5, '0');
+                const nextBarcodeStr = 'VACA' + nextNum.toString().padStart(6, '0');
+                
+                document.getElementById('wine-id').value = nextIdStr;
+                document.getElementById('barcode').value = nextBarcodeStr;
+                
+            } catch (error) {
+                console.error('Error generating ID:', error);
+                document.getElementById('wine-id').value = 'W-ERROR';
+                document.getElementById('barcode').value = 'VACA-ERROR';
+            }
+        }
+
+        // เรียกใช้งานฟังก์ชันทันที
+        generateNextID();
+
+        // ฟังก์ชันบันทึกข้อมูล
         async function saveProduct(event) {
             event.preventDefault();
             
@@ -84,8 +122,7 @@
                 
                 if (response.ok) {
                     alert('✅ บันทึกข้อมูลสินค้าใหม่เรียบร้อยแล้ว!');
-                    document.getElementById('add-form').reset();
-                    // บันทึกเสร็จให้เด้งกลับไปหน้าเมนู
+                    // กลับไปหน้าเมนู
                     window.location.href = '/menu.html';
                 } else {
                     alert('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล');
