@@ -165,6 +165,11 @@ app.post('/api/login', (req, res) => {
     }
 });
 
+// API: ดึงข้อมูลไวน์ทั้งหมด (หน้าเว็บต้องใช้เพื่อคำนวณรหัส)
+app.get('/api/wines', (req, res) => {
+    res.json(wines);
+});
+
 // API: เพิ่มไวน์ใหม่
 app.post('/api/wines', (req, res) => {
     const { id, barcode, name, type, country, bottle_size, price } = req.body;
@@ -185,11 +190,11 @@ app.post('/api/wines', (req, res) => {
         qty_home: 0 
     };
     
-    // บันทึกเข้า Array (Database) ที่อยู่ด้านบนสุด
-    wines.unshift(newWine);
+    // บันทึกต่อท้ายใน Database
+    wines.push(newWine);
     res.json(newWine);
 });
-  
+
     // บันทึกเข้า Array (Database) ที่อยู่ด้านบนสุด
     wines.unshift(newWine);
     res.json(newWine);
