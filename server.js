@@ -151,21 +151,29 @@ let wines = [
     { id: 'W00140', barcode: 'VACA000140', name: '', vintage: '', type: '', country: '', region: '', bottle_size: 750, cost_price: 511, price: 381156, qty_front: 0, qty_back: 0, qty_home: 0 },
 ];
 
-// API: ตรวจสอบการ Login
-app.post('/api/login', (req, res) => {
-    const { username, password } = req.body;
-    if (username === 'admin' && password === 'wine1234') {
-        res.json({ success: true, role: 'admin', name: 'ผู้จัดการร้าน (Admin)' });
-    } else if (username === 'staff' && password === 'staff1234') {
-        res.json({ success: true, role: 'staff', name: 'พนักงานหน้าร้าน (Staff)' });
-    } else {
-        res.status(401).json({ success: false, message: 'ชื่อหรือรหัสผ่านไม่ถูกต้อง' });
-    }
-});
-
-// API: ดึงข้อมูลไวน์ทั้งหมด
-app.get('/api/wines', (req, res) => {
-    res.json(wines);
+// API: เพิ่มไวน์ใหม่
+app.post('/api/wines', (req, res) => {
+    const { id, barcode, name, type, country, bottle_size, price } = req.body;
+    
+    const newWine = { 
+        id: id, 
+        barcode: barcode, 
+        name: name, 
+        vintage: '',       
+        type: type,        
+        country: country, 
+        region: '', 
+        bottle_size: bottle_size || 750, 
+        cost_price: 0, 
+        price: price, 
+        qty_front: 0, 
+        qty_back: 0, 
+        qty_home: 0 
+    };
+    
+    // บันทึกเข้า Array (Database) ที่อยู่ด้านบนสุด
+    wines.unshift(newWine);
+    res.json(newWine);
 });
 
 // API: เพิ่มไวน์ใหม่
