@@ -159,18 +159,18 @@ app.post('/api/login', (req, res) => {
     } else if (username === 'staff' && password === 'staff1234') {
         res.json({ success: true, role: 'staff', name: 'พนักงานหน้าร้าน (Staff)' });
     } else if (username === 'Demo' && password === 'Demo') {
-        res.json({ success: true, role: 'viewer', name: 'ผู้เข้าชม (Demo)' }); // เพิ่มสิทธิ์ดูอย่างเดียว
+        res.json({ success: true, role: 'viewer', name: 'ผู้เข้าชม (Demo)' });
     } else {
         res.status(401).json({ success: false, message: 'ชื่อหรือรหัสผ่านไม่ถูกต้อง' });
     }
 });
 
-// API: ดึงข้อมูลไวน์ทั้งหมด (หน้าเว็บต้องใช้เพื่อคำนวณรหัส)
+// API: ดึงข้อมูลไวน์ทั้งหมด (สำคัญมาก! ขาดตัวนี้หน้าเว็บจะรัน W00141 ไม่ได้)
 app.get('/api/wines', (req, res) => {
     res.json(wines);
 });
 
-// API: เพิ่มไวน์ใหม่
+// API: เพิ่มไวน์ใหม่ (มีอันเดียว ไม่ซ้ำซ้อนแล้ว)
 app.post('/api/wines', (req, res) => {
     const { id, barcode, name, type, country, bottle_size, price } = req.body;
     
@@ -190,25 +190,20 @@ app.post('/api/wines', (req, res) => {
         qty_home: 0 
     };
     
-    // บันทึกต่อท้ายใน Database
+    // บันทึกต่อท้ายรายการล่าสุด
     wines.push(newWine);
     res.json(newWine);
 });
 
-    // บันทึกเข้า Array (Database) ที่อยู่ด้านบนสุด
-    wines.unshift(newWine);
-    res.json(newWine);
-});
-
-// API: ปรับจำนวนสต็อกตามตำแหน่งที่เก็บ (หน้าร้าน, หลังร้าน, บ้าน)
+// API: ปรับจำนวนสต็อกตามตำแหน่งที่เก็บ
 app.patch('/api/wines/:id/qty', (req, res) => {
-    const { location, amount } = req.body; // location: 'qty_front', 'qty_back', หรือ 'qty_home'
+    const { location, amount } = req.body;
     const id = req.params.id;
     const wine = wines.find(w => w.id === id);
     
     if (wine && (location === 'qty_front' || location === 'qty_back' || location === 'qty_home')) {
         wine[location] += amount;
-        if (wine[location] < 0) wine[location] = 0; // ป้องกันสต็อกติดลบ
+        if (wine[location] < 0) wine[location] = 0;
         res.json(wine);
     } else {
         res.status(404).json({ error: "ไม่พบข้อมูลไวน์ หรือ ระบุตำแหน่งผิด" });
@@ -218,3 +213,4 @@ app.patch('/api/wines/:id/qty', (req, res) => {
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
