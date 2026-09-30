@@ -33,12 +33,10 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs text-stone-400 mb-1">รหัสสินค้า (Auto ID)</label>
-                        <!-- เปลี่ยนเป็น Readonly และทำสีทึบ -->
                         <input type="text" id="wine-id" readonly class="w-full bg-stone-800 border border-stone-700 rounded-lg p-3 text-sm text-emerald-400 font-semibold cursor-not-allowed focus:outline-none" value="กำลังโหลด...">
                     </div>
                     <div>
                         <label class="block text-xs text-stone-400 mb-1">รหัสบาร์โค้ด (Auto Barcode)</label>
-                        <!-- เปลี่ยนเป็น Readonly และทำสีทึบ -->
                         <input type="text" id="barcode" readonly class="w-full bg-stone-800 border border-stone-700 rounded-lg p-3 text-sm text-emerald-400 font-semibold cursor-not-allowed focus:outline-none" value="กำลังโหลด...">
                     </div>
                 </div>
@@ -48,9 +46,21 @@
                     <input type="text" id="name" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="เช่น Penfolds Bin 389">
                 </div>
 
-                <div>
-                    <label class="block text-xs text-stone-400 mb-1">ข้อมูล (ประเภท, ประเทศ, หรือรายละเอียดอื่นๆ)</label>
-                    <input type="text" id="info" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="เช่น Red Wine, Australia">
+                <!-- แยก 3 ช่อง: ประเภท, ประเทศ, ขนาดขวด -->
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs text-stone-400 mb-1">ประเภท</label>
+                        <!-- ช่องนี้ล็อกการแก้ไข (readonly) -->
+                        <input type="text" id="type" readonly class="w-full bg-stone-800 border border-stone-700 rounded-lg p-3 text-sm text-stone-300 font-semibold cursor-not-allowed focus:outline-none" value="">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-stone-400 mb-1">ประเทศ</label>
+                        <input type="text" id="country" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="เช่น France">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-stone-400 mb-1">ขนาด (ml)</label>
+                        <input type="number" id="bottle-size" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" value="750">
+                    </div>
                 </div>
 
                 <div>
@@ -66,17 +76,23 @@
     </main>
 
     <script>
-        // ฟังก์ชันรันอัตโนมัติเมื่อเปิดหน้าเว็บ เพื่อดึงเลขล่าสุดมาบวก 1
+        // ดึงประเภทไวน์จากหน้าเมนูมาใส่ช่อง "ประเภท" อัตโนมัติ
+        const urlParams = new URLSearchParams(window.location.search);
+        const wineType = urlParams.get('type');
+        if (wineType) {
+            document.getElementById('type').value = wineType;
+        } else {
+            document.getElementById('type').value = "ไม่ระบุ";
+        }
+
         async function generateNextID() {
             try {
                 const response = await fetch('/api/wines');
                 const wines = await response.json();
                 
                 let maxIdNum = 0;
-                
-                // วนลูปหารหัสตัวเลขที่เยอะที่สุดในระบบ
                 wines.forEach(wine => {
-                    const numMatch = wine.id.match(/\d+/); // ดึงเฉพาะตัวเลขจาก W00140
+                    const numMatch = wine.id.match(/\d+/);
                     if (numMatch) {
                         const num = parseInt(numMatch[0]);
                         if (num > maxIdNum) maxIdNum = num;
@@ -84,39 +100,27 @@
                 });
                 
                 const nextNum = maxIdNum + 1;
-                // เติม 0 ข้างหน้าให้ครบ 5 หลักสำหรับ ID และ 6 หลักสำหรับ Barcode
-                const nextIdStr = 'W' + nextNum.toString().padStart(5, '0');
-                const nextBarcodeStr = 'VACA' + nextNum.toString().padStart(6, '0');
-                
-                document.getElementById('wine-id').value = nextIdStr;
-                document.getElementById('barcode').value = nextBarcodeStr;
+                document.getElementById('wine-id').value = 'W' + nextNum.toString().padStart(5, '0');
+                document.getElementById('barcode').value = 'VACA' + nextNum.toString().padStart(6, '0');
                 
             } catch (error) {
                 console.error('Error generating ID:', error);
-                document.getElementById('wine-id').value = 'W-ERROR';
-                document.getElementById('barcode').value = 'VACA-ERROR';
             }
         }
 
-        // เรียกใช้งานฟังก์ชันทันที
         generateNextID();
 
-       // ดึงประเภทไวน์จาก URL มาใส่ในช่องข้อมูลให้อัตโนมัติ
-        const urlParams = new URLSearchParams(window.location.search);
-        const wineType = urlParams.get('type');
-        if (wineType) {
-            document.getElementById('info').value = wineType + ' Wine';
-        }
-
-        // ฟังก์ชันบันทึกข้อมูล
         async function saveProduct(event) {
             event.preventDefault();
             
+            // ดึงค่าทั้งหมดเพื่อส่งให้หลังบ้าน
             const newWine = {
                 id: document.getElementById('wine-id').value,
                 barcode: document.getElementById('barcode').value,
                 name: document.getElementById('name').value,
-                info: document.getElementById('info').value,
+                type: document.getElementById('type').value,
+                country: document.getElementById('country').value,
+                bottle_size: parseInt(document.getElementById('bottle-size').value),
                 price: parseFloat(document.getElementById('price').value)
             };
 
@@ -129,7 +133,6 @@
                 
                 if (response.ok) {
                     alert('✅ บันทึกข้อมูลสินค้าใหม่เรียบร้อยแล้ว!');
-                    // กลับไปหน้าเมนู
                     window.location.href = '/menu.html';
                 } else {
                     alert('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล');
