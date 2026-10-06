@@ -167,12 +167,6 @@
 
         fetchWines();
     </script>
-// ตรวจสอบ URL ว่ามีการสั่งให้เปิด Modal เพิ่มสินค้าหรือไม่
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('action') === 'add') {
-            openAddModal();
-            // ลบพารามิเตอร์ออกจาก URL เพื่อความสวยงาม
-            window.history.replaceState({}, document.title, "/index.html");
-        }
+
 </body>
 </html>
