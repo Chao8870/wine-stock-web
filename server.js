@@ -151,6 +151,21 @@ let wines = [
     { id: 'W00140', barcode: 'VACA000140', name: '', vintage: '', type: '', country: '', region: '', bottle_size: 750, cost_price: 511, price: 381156, qty_front: 0, qty_back: 0, qty_home: 0 },
 ];
 
+DCDC// เก็บประวัติการใช้งาน (Logs) ในหน่วยความจำ 200 รายการล่าสุด
+let logs = [];
+
+function addLog(username, action, detail) {
+    const time = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+    logs.unshift({ time, username, action, detail });
+    if (logs.length > 200) logs.pop(); // กันไม่ให้กิน Memory เซิร์ฟเวอร์มากเกินไป
+}
+
+// API: ดึงข้อมูลประวัติการใช้งาน
+app.get('/api/logs', (req, res) => {
+    res.json(logs);
+});
+
+
 // API: ตรวจสอบการ Login
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
@@ -170,43 +185,42 @@ app.get('/api/wines', (req, res) => {
     res.json(wines);
 });
 
-// API: เพิ่มไวน์ใหม่ (มีอันเดียว ไม่ซ้ำซ้อนแล้ว)
+// API: เพิ่มไวน์ใหม่
 app.post('/api/wines', (req, res) => {
-    const { id, barcode, name, type, country, bottle_size, price } = req.body;
+    const { id, barcode, name, type, country, bottle_size, price, user } = req.body;
     
     const newWine = { 
-        id: id, 
-        barcode: barcode, 
-        name: name, 
-        vintage: '',       
-        type: type,        
-        country: country, 
-        region: '', 
-        bottle_size: bottle_size || 750, 
-        cost_price: 0, 
-        price: price, 
-        qty_front: 0, 
-        qty_back: 0, 
-        qty_home: 0 
+        id: id, barcode: barcode, name: name, vintage: '', type: type,        
+        country: country, region: '', bottle_size: bottle_size || 750, 
+        cost_price: 0, price: price, qty_front: 0, qty_back: 0, qty_home: 0 
     };
     
-    // บันทึกต่อท้ายรายการล่าสุด
     wines.push(newWine);
+    
+    // บันทึก Log
+    addLog(user || 'ไม่ทราบชื่อ', 'เพิ่มสินค้าใหม่', `รหัส: ${id} | ชื่อ: ${name}`);
+    
     res.json(newWine);
 });
 
 // API: ปรับจำนวนสต็อกตามตำแหน่งที่เก็บ
 app.patch('/api/wines/:id/qty', (req, res) => {
-    const { location, amount } = req.body;
+    const { location, amount, user } = req.body;
     const id = req.params.id;
     const wine = wines.find(w => w.id === id);
     
     if (wine && (location === 'qty_front' || location === 'qty_back' || location === 'qty_home')) {
         wine[location] += amount;
         if (wine[location] < 0) wine[location] = 0;
+        
+        // บันทึก Log
+        const action = amount > 0 ? 'นำเข้าสต็อก (In)' : 'ตัดสต็อก (Out)';
+        const locName = location === 'qty_front' ? 'หน้าร้าน' : location === 'qty_back' ? 'หลังร้าน' : 'บ้าน';
+        addLog(user || 'ไม่ทราบชื่อ', action, `รหัส: ${id} | ${locName} (${amount > 0 ? '+'+amount : amount} ขวด)`);
+        
         res.json(wine);
     } else {
-        res.status(404).json({ error: "ไม่พบข้อมูลไวน์ หรือ ระบุตำแหน่งผิด" });
+        res.status(404).json({ error: "ไม่พบข้อมูลไวน์" });
     }
 });
 
