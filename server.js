@@ -151,20 +151,14 @@ let wines = [
     { id: 'W00140', barcode: 'VACA000140', name: '', vintage: '', type: '', country: '', region: '', bottle_size: 750, cost_price: 511, price: 381156, qty_front: 0, qty_back: 0, qty_home: 0 },
 ];
 
-DCDC// เก็บประวัติการใช้งาน (Logs) ในหน่วยความจำ 200 รายการล่าสุด
+// เก็บประวัติการใช้งาน (Logs) ในหน่วยความจำ
 let logs = [];
 
 function addLog(username, action, detail) {
     const time = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
     logs.unshift({ time, username, action, detail });
-    if (logs.length > 200) logs.pop(); // กันไม่ให้กิน Memory เซิร์ฟเวอร์มากเกินไป
+    if (logs.length > 200) logs.pop(); // กันไม่ให้กิน Memory
 }
-
-// API: ดึงข้อมูลประวัติการใช้งาน
-app.get('/api/logs', (req, res) => {
-    res.json(logs);
-});
-
 
 // API: ตรวจสอบการ Login
 app.post('/api/login', (req, res) => {
@@ -180,9 +174,14 @@ app.post('/api/login', (req, res) => {
     }
 });
 
-// API: ดึงข้อมูลไวน์ทั้งหมด (สำคัญมาก! ขาดตัวนี้หน้าเว็บจะรัน W00141 ไม่ได้)
+// API: ดึงข้อมูลไวน์ทั้งหมด
 app.get('/api/wines', (req, res) => {
     res.json(wines);
+});
+
+// API: ดึงข้อมูลประวัติการใช้งาน (Logs)
+app.get('/api/logs', (req, res) => {
+    res.json(logs);
 });
 
 // API: เพิ่มไวน์ใหม่
@@ -196,10 +195,7 @@ app.post('/api/wines', (req, res) => {
     };
     
     wines.push(newWine);
-    
-    // บันทึก Log
     addLog(user || 'ไม่ทราบชื่อ', 'เพิ่มสินค้าใหม่', `รหัส: ${id} | ชื่อ: ${name}`);
-    
     res.json(newWine);
 });
 
@@ -213,18 +209,18 @@ app.patch('/api/wines/:id/qty', (req, res) => {
         wine[location] += amount;
         if (wine[location] < 0) wine[location] = 0;
         
-        // บันทึก Log
         const action = amount > 0 ? 'นำเข้าสต็อก (In)' : 'ตัดสต็อก (Out)';
         const locName = location === 'qty_front' ? 'หน้าร้าน' : location === 'qty_back' ? 'หลังร้าน' : 'บ้าน';
         addLog(user || 'ไม่ทราบชื่อ', action, `รหัส: ${id} | ${locName} (${amount > 0 ? '+'+amount : amount} ขวด)`);
         
         res.json(wine);
     } else {
-        res.status(404).json({ error: "ไม่พบข้อมูลไวน์" });
+        res.status(404).json({ error: "ไม่พบข้อมูลไวน์ หรือ ระบุตำแหน่งผิด" });
     }
 });
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
+
 
