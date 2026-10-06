@@ -138,12 +138,15 @@
             document.getElementById('low-stock-count').innerText = lowStock;
         }
 
-        async function adjustQty(id, location, amount) {
-            await fetch(`/api/wines/${id}/qty`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ location, amount })
-            });
+        async function adjustQty(id, location, amount) 
+            const userName = localStorage.getItem('userName'); // ดึงชื่อผู้ใช้
+            try {
+                const response = await fetch(`/api/wines/${id}/qty`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location, amount, user: userName }) // ส่งชื่อไปด้วย
+                });
+
             fetchWines();
         }
 

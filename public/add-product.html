@@ -128,14 +128,15 @@
         async function saveProduct(event) {
             event.preventDefault();
             
-            const newWine = {
+             const newWine = {
                 id: document.getElementById('wine-id').value,
                 barcode: document.getElementById('barcode').value,
                 name: document.getElementById('name').value,
                 type: document.getElementById('type').value,
                 country: document.getElementById('country').value,
                 bottle_size: parseInt(document.getElementById('bottle-size').value),
-                price: parseFloat(document.getElementById('price').value)
+                price: parseFloat(document.getElementById('price').value),
+                user: localStorage.getItem('userName') // ส่งชื่อคนทำรายการไปด้วย
             };
 
             try {
