@@ -151,13 +151,25 @@ let wines = [
     { id: 'W00140', barcode: 'VACA000140', name: '', vintage: '', type: '', country: '', region: '', bottle_size: 750, cost_price: 511, price: 381156, qty_front: 0, qty_back: 0, qty_home: 0 },
 ];
 
-// เก็บประวัติการใช้งาน (Logs) ในหน่วยความจำ
-let logs = [];
+// เก็บประวัติการใช้งาน (Logs) ลงไฟล์เพื่อป้องกันข้อมูลหายเมื่อเซิร์ฟเวอร์รีสตาร์ท
+const fs = require('fs');
+const logsFilePath = './logs.json';
+
+function readLogs() {
+    if (!fs.existsSync(logsFilePath)) return [];
+    const data = fs.readFileSync(logsFilePath, 'utf8');
+    return JSON.parse(data);
+}
 
 function addLog(username, action, detail) {
     const time = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-    logs.unshift({ time, username, action, detail });
-    if (logs.length > 200) logs.pop(); // กันไม่ให้กิน Memory
+    const logs = readLogs();
+    
+    // ตั้งชื่อ key ให้ตรงกับหน้า logs.html (timestamp, user, action, details)
+    logs.unshift({ timestamp: time, user: username, action: action, details: detail });
+    
+    if (logs.length > 500) logs.pop(); // เก็บย้อนหลัง 500 รายการ
+    fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
 }
 
 // API: ตรวจสอบการ Login
@@ -181,7 +193,7 @@ app.get('/api/wines', (req, res) => {
 
 // API: ดึงข้อมูลประวัติการใช้งาน (Logs)
 app.get('/api/logs', (req, res) => {
-    res.json(logs);
+    res.json(readLogs());
 });
 
 // API: เพิ่มไวน์ใหม่
@@ -206,8 +218,14 @@ app.patch('/api/wines/:id/qty', (req, res) => {
     const wine = wines.find(w => w.id === id);
     
     if (wine && (location === 'qty_front' || location === 'qty_back' || location === 'qty_home')) {
+        
+        // --- เช็คสต็อกคงเหลือก่อน ---
+        // ถ้าเป็นการเบิกออก (amount เป็นลบ) และสต็อกเป็น 0 หรือน้อยกว่า ให้ปฏิเสธการบันทึก
+        if (amount < 0 && wine[location] <= 0) {
+            return res.status(400).json({ error: 'สต็อกหมด ไม่สามารถเบิกออกได้' });
+        }
+
         wine[location] += amount;
-        if (wine[location] < 0) wine[location] = 0;
         
         const action = amount > 0 ? 'นำเข้าสต็อก (In)' : 'ตัดสต็อก (Out)';
         const locName = location === 'qty_front' ? 'หน้าร้าน' : location === 'qty_back' ? 'หลังร้าน' : 'บ้าน';
