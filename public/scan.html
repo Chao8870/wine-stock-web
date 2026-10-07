@@ -93,13 +93,13 @@
             isProcessing = true;
 
             const resultDiv = document.getElementById('scan-result');
-            // ค้นหาไวน์จาก Barcode หรือ รหัส ID (W00001)
             const wine = wines.find(w => w.barcode === scannedCode || w.id === scannedCode);
 
             if (!wine) {
                 resultDiv.innerHTML = `<span class="text-red-500">❌ ไม่พบสินค้า: ${scannedCode}</span>`;
                 playSound('error');
-                setTimeout(() => { isProcessing = false; resultDiv.innerText = "พร้อมสแกน..."; }, 2000);
+                // หน่วงเวลา 5 วินาที (5000 ms)
+                setTimeout(() => { isProcessing = false; resultDiv.innerText = "พร้อมสแกน..."; }, 5000);
                 return;
             }
 
@@ -107,20 +107,19 @@
             const location = document.getElementById('scan-location').value;
             const amount = action === 'in' ? 1 : -1;
 
-            // --- เช็คสต็อกคงเหลือก่อนเบิกออก ---
             if (action === 'out' && wine[location] <= 0) {
                 const locName = location === 'qty_front' ? 'หน้าร้าน' : (location === 'qty_back' ? 'หลังร้าน' : 'บ้าน');
                 resultDiv.innerHTML = `<span class="text-red-500">❌ เบิกไม่ได้! สต็อก ${wine.name} ใน${locName} เป็น 0</span>`;
                 playSound('error');
                 
-                // หน่วงเวลาให้เห็นข้อความเตือน แล้วกลับไปรอสแกนใหม่
+                // หน่วงเวลา 5 วินาที (5000 ms)
                 setTimeout(() => { 
                     isProcessing = false; 
                     resultDiv.innerText = "พร้อมสแกนขวดต่อไป..."; 
                     document.getElementById('manual-barcode').value = '';
                     document.getElementById('manual-barcode').focus();
-                }, 2500);
-                return; // หยุดการทำงาน ไม่ส่งข้อมูลไปบันทึก
+                }, 5000);
+                return; 
             }
 
             try {
@@ -131,9 +130,7 @@
                 });
 
                 if (response.ok) {
-                    // อัปเดตสต็อกในตัวแปรทันที เพื่อให้สแกนขวดเดิมซ้ำได้อย่างแม่นยำ
                     wine[location] += amount;
-
                     const actionText = action === 'in' ? 'รับเข้า' : 'เบิกออก';
                     resultDiv.innerHTML = `✅ ${actionText} <b>${wine.name}</b> สำเร็จ! (คงเหลือ ${wine[location]})`;
                     playSound('success');
@@ -145,13 +142,13 @@
                 resultDiv.innerHTML = `<span class="text-red-500">❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้</span>`;
             }
 
-            // หน่วงเวลา 2 วินาทีเพื่อให้คนสแกนเห็นผลลัพธ์ ก่อนเปิดรับสแกนขวดต่อไป
+            // หน่วงเวลา 5 วินาที (5000 ms)
             setTimeout(() => { 
                 isProcessing = false; 
                 resultDiv.innerText = "พร้อมสแกนขวดต่อไป..."; 
                 document.getElementById('manual-barcode').value = '';
                 document.getElementById('manual-barcode').focus();
-            }, 2000);
+            }, 5000);
         }
 
         // รองรับปืนยิงบาร์โค้ด (เมื่อกด Enter)
