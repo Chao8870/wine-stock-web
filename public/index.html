@@ -83,28 +83,16 @@
             renderTable(wines);
         }
 
-        function renderTable(dataToRender) {
-            const tbody = document.getElementById('stock-table-body');
-            tbody.innerHTML = '';
-            
-            let totalBottles = 0, totalFront = 0, lowStock = 0;
-            const isViewer = userRole === 'viewer'; // เช็คว่าเป็นบัญชี Demo หรือไม่
-
-            dataToRender.forEach(wine => {
+        function dataToRender.forEach(wine => {
                 const total = wine.qty_front + wine.qty_back + wine.qty_home;
                 totalBottles += total;
                 totalFront += wine.qty_front;
                 if (total < 5) lowStock++;
 
-                // กำหนดปุ่ม: ถ้าเป็น Demo ให้แสดงแค่ตัวเลข ถ้าเป็น Admin/Staff ให้แสดงปุ่ม +/- ด้วย
-                const frontCol = isViewer ? `<span class="w-6 font-semibold text-stone-400">${wine.qty_front}</span>` 
-                    : `<button onclick="adjustQty('${wine.id}', 'qty_front', -1)" class="w-6 h-6 bg-stone-800 hover:bg-red-500 rounded text-xs">-</button><span class="w-6 font-semibold">${wine.qty_front}</span><button onclick="adjustQty('${wine.id}', 'qty_front', 1)" class="w-6 h-6 bg-stone-800 hover:bg-emerald-500 rounded text-xs">+</button>`;
-                
-                const backCol = isViewer ? `<span class="w-6 font-semibold text-stone-400">${wine.qty_back}</span>` 
-                    : `<button onclick="adjustQty('${wine.id}', 'qty_back', -1)" class="w-6 h-6 bg-stone-800 hover:bg-red-500 rounded text-xs">-</button><span class="w-6 font-semibold">${wine.qty_back}</span><button onclick="adjustQty('${wine.id}', 'qty_back', 1)" class="w-6 h-6 bg-stone-800 hover:bg-emerald-500 rounded text-xs">+</button>`;
-                
-                const homeCol = isViewer ? `<span class="w-6 font-semibold text-stone-400">${wine.qty_home}</span>` 
-                    : `<button onclick="adjustQty('${wine.id}', 'qty_home', -1)" class="w-6 h-6 bg-stone-800 hover:bg-red-500 rounded text-xs">-</button><span class="w-6 font-semibold">${wine.qty_home}</span><button onclick="adjustQty('${wine.id}', 'qty_home', 1)" class="w-6 h-6 bg-stone-800 hover:bg-emerald-500 rounded text-xs">+</button>`;
+                // แสดงเฉพาะตัวเลขจำนวนสต็อก (ลบปุ่ม +/- ออกทั้งหมด)
+                const frontCol = `<span class="font-semibold text-stone-200 text-base">${wine.qty_front}</span>`;
+                const backCol  = `<span class="font-semibold text-stone-200 text-base">${wine.qty_back}</span>`;
+                const homeCol  = `<span class="font-semibold text-stone-200 text-base">${wine.qty_home}</span>`;
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-stone-900/50 transition text-center';
@@ -119,9 +107,9 @@
                     </td>
                     <td class="p-4 text-amber-400 font-semibold">฿${wine.price.toLocaleString()}</td>
                     
-                    <td class="p-4 bg-stone-800/10"><div class="flex items-center justify-center space-x-2">${frontCol}</div></td>
-                    <td class="p-4 bg-stone-800/10"><div class="flex items-center justify-center space-x-2">${backCol}</div></td>
-                    <td class="p-4 bg-stone-800/10"><div class="flex items-center justify-center space-x-2">${homeCol}</div></td>
+                    <td class="p-4 bg-stone-800/10">${frontCol}</td>
+                    <td class="p-4 bg-stone-800/10">${backCol}</td>
+                    <td class="p-4 bg-stone-800/10">${homeCol}</td>
                     
                     <td class="p-4">
                         <span class="px-3 py-1 rounded-full text-sm font-bold ${total < 5 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}">
