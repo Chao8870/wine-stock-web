@@ -3,38 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ประวัติการใช้งาน - Wine Stock Management</title>
+    <title>ประวัติการใช้งาน - Wine Stock</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style> body { font-family: 'Prompt', sans-serif; } </style>
 </head>
-<body class="bg-stone-900 text-stone-100 min-h-screen">
+<body class="bg-stone-900 text-stone-100 min-h-screen flex flex-col">
 
     <script>
         if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/login.html';
     </script>
 
-    <header class="bg-stone-950 border-b border-stone-800 py-4 px-6 flex justify-between items-center">
+    <header class="bg-stone-950 border-b border-stone-800 py-4 px-6 flex justify-between items-center sticky top-0 z-10">
         <div class="flex items-center space-x-4">
-            <a href="/menu.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1.5 rounded-lg text-sm transition">⬅ ย้อนกลับ</a>
-            <h1 class="text-xl font-semibold text-amber-500 hidden sm:block">ประวัติการใช้งาน (System Logs)</h1>
+            <a href="/menu.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1.5 rounded-lg text-sm transition">⬅️ กลับเมนูหลัก</a>
+            <h1 class="text-xl font-semibold text-sky-400 hidden sm:block">📝 ประวัติการใช้งานระบบ (Logs)</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <span id="user-display" class="text-sm text-stone-300 bg-stone-900 px-3 py-1 rounded-lg border border-stone-800"></span>
         </div>
     </header>
 
-    <main class="max-w-5xl mx-auto px-4 py-8">
-        <div class="bg-stone-950 border border-stone-800 rounded-2xl overflow-hidden shadow-2xl">
+    <main class="max-w-6xl mx-auto py-8 w-full px-4 flex-grow">
+        <div class="bg-stone-950 rounded-xl border border-stone-800 overflow-hidden shadow-xl">
             <div class="overflow-x-auto">
-                <table class="w-full text-sm text-left text-stone-300">
-                    <thead class="text-xs text-stone-400 uppercase bg-stone-900/50 border-b border-stone-800">
-                        <tr>
-                            <th class="px-6 py-4">วัน-เวลา</th>
-                            <th class="px-6 py-4">ผู้ใช้งาน</th>
-                            <th class="px-6 py-4">การกระทำ (Action)</th>
-                            <th class="px-6 py-4">รายละเอียด</th>
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-stone-900 text-stone-400 text-xs uppercase tracking-wider border-b border-stone-800 text-center">
+                            <th class="p-4 text-left w-48">วัน-เวลา</th>
+                            <th class="p-4 w-48">ผู้ทำรายการ</th>
+                            <th class="p-4 w-48">ประเภทรายการ</th>
+                            <th class="p-4 text-left">รายละเอียด</th>
                         </tr>
                     </thead>
-                    <tbody id="logs-table-body">
-                        <!-- ข้อมูล Logs จะมาแทรกตรงนี้ -->
+                    <tbody id="logs-table-body" class="divide-y divide-stone-800 text-sm">
+                        <!-- ข้อมูลจะถูกนำมาแสดงตรงนี้ -->
                     </tbody>
                 </table>
             </div>
@@ -42,51 +45,42 @@
     </main>
 
     <script>
-        // ตรวจสอบการล็อกอิน
-        if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/login.html';
         document.getElementById('user-display').innerText = `👤 ${localStorage.getItem('userName')}`;
 
         async function fetchLogs() {
             try {
-                // เพิ่ม ?t=... ต่อท้าย URL เพื่อบังคับให้เบราว์เซอร์โหลดข้อมูลใหม่เสมอ (ไม่ติด Cache)
+                // เพิ่ม ?t=... เพื่อบังคับไม่ให้เบราว์เซอร์จำค่าแคช (Cache)
                 const res = await fetch('/api/logs?t=' + new Date().getTime());
                 const logs = await res.json();
                 
-                // ตรวจสอบว่าใน HTML ของคุณมี <tbody> ที่ id="logs-table-body" หรือไม่ (ถ้าตั้งชื่ออื่นให้เปลี่ยนให้ตรงกัน)
                 const tbody = document.getElementById('logs-table-body'); 
-                if (!tbody) return;
+                tbody.innerHTML = ''; 
                 
-                tbody.innerHTML = ''; // ล้างข้อมูลเก่าก่อนแสดงของใหม่
-                
-                // นำข้อมูลมาวนลูปแสดงผล (ใช้ .reverse() เพื่อให้รายการล่าสุดอยู่บนสุด)
-                logs.reverse().forEach(log => {
+                // วนลูปนำข้อมูลมาสร้างเป็นตาราง
+                logs.forEach(log => {
                     const tr = document.createElement('tr');
-                    tr.className = 'hover:bg-stone-900/50 transition border-b border-stone-800 text-sm text-center';
+                    tr.className = 'hover:bg-stone-900/50 transition text-center';
                     
-                    // ปรับแต่งคอลัมน์ให้ตรงกับ โครงสร้าง Log ของคุณ
                     tr.innerHTML = `
-                        <td class="p-4 text-stone-400">${log.timestamp || log.date || '-'}</td>
-                        <td class="p-4 text-emerald-400 font-semibold">${log.user || 'System'}</td>
+                        <td class="p-4 text-left text-stone-400">${log.timestamp || '-'}</td>
+                        <td class="p-4 text-emerald-400 font-semibold">${log.user || '-'}</td>
                         <td class="p-4 text-amber-500">${log.action || '-'}</td>
-                        <td class="p-4 text-stone-200 text-left">${log.details || '-'}</td>
+                        <td class="p-4 text-stone-200 text-left font-mono text-xs">${log.details || '-'}</td>
                     `;
                     tbody.appendChild(tr);
                 });
             } catch (error) {
                 console.error("Error fetching logs:", error);
+                const tbody = document.getElementById('logs-table-body'); 
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">❌ ไม่สามารถดึงข้อมูลประวัติได้</td></tr>`;
             }
         }
 
-        // ดึงข้อมูลครั้งแรกเมื่อเปิดหน้า
+        // เรียกใช้งานครั้งแรกทันที
         fetchLogs();
 
-        // ตั้งเวลาให้ดึงข้อมูลใหม่แบบอัตโนมัติทุกๆ 5 วินาที (เพื่อให้เห็นข้อมูลไหลมาเรื่อยๆ)
+        // ตั้งเวลาให้รีเฟรชข้อมูลอัตโนมัติทุกๆ 5 วินาที
         setInterval(fetchLogs, 5000);
-        
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/login.html';
-        }
     </script>
 </body>
 </html>
