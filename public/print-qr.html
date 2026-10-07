@@ -118,6 +118,34 @@
         }
 
         fetchWines();
+
+        // ==========================================
+        // ระบบ Auto Logout เมื่อไม่มีการใช้งาน 30 นาที
+        // ==========================================
+        let inactivityTimer;
+        const TIME_LIMIT = 30 * 60 * 1000; // 30 นาที (หน่วยเป็นมิลลิวินาที)
+
+        // ฟังก์ชันเมื่อหมดเวลา
+        function autoLogout() {
+            alert("คุณไม่ได้ใช้งานระบบเป็นเวลานาน ระบบจึงออกจากระบบอัตโนมัติเพื่อความปลอดภัย");
+            localStorage.clear(); // ล้างข้อมูลล็อกอิน
+            window.location.href = '/login.html'; // เด้งกลับหน้าล็อกอิน
+        }
+
+        // ฟังก์ชันรีเซ็ตเวลาใหม่ทุกครั้งที่มีการขยับ
+        function resetTimer() {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = setTimeout(autoLogout, TIME_LIMIT);
+        }
+
+        // ตรวจจับเหตุการณ์ (Events) ต่างๆ ที่แสดงว่าผู้ใช้กำลังใช้งานอยู่
+        window.onload = resetTimer;
+        document.onmousemove = resetTimer;    // ขยับเมาส์
+        document.onkeypress = resetTimer;     // พิมพ์คีย์บอร์ด
+        document.ontouchstart = resetTimer;   // แตะหน้าจอ (สำหรับมือถือ/แท็บเล็ต)
+        document.onclick = resetTimer;        // คลิกเมาส์
+        document.onscroll = resetTimer;       // เลื่อนหน้าจอ
+        // ==========================================
     </script>
 </body>
 </html>
