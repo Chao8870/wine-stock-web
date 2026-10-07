@@ -105,7 +105,23 @@
 
             const action = document.getElementById('scan-action').value;
             const location = document.getElementById('scan-location').value;
-            const amount = action === 'in' ? 1 : -1; // รับเข้าทีละ 1 หรือ เบิกออกทีละ 1
+            const amount = action === 'in' ? 1 : -1;
+
+            // --- เช็คสต็อกคงเหลือก่อนเบิกออก ---
+            if (action === 'out' && wine[location] <= 0) {
+                const locName = location === 'qty_front' ? 'หน้าร้าน' : (location === 'qty_back' ? 'หลังร้าน' : 'บ้าน');
+                resultDiv.innerHTML = `<span class="text-red-500">❌ เบิกไม่ได้! สต็อก ${wine.name} ใน${locName} เป็น 0</span>`;
+                playSound('error');
+                
+                // หน่วงเวลาให้เห็นข้อความเตือน แล้วกลับไปรอสแกนใหม่
+                setTimeout(() => { 
+                    isProcessing = false; 
+                    resultDiv.innerText = "พร้อมสแกนขวดต่อไป..."; 
+                    document.getElementById('manual-barcode').value = '';
+                    document.getElementById('manual-barcode').focus();
+                }, 2500);
+                return; // หยุดการทำงาน ไม่ส่งข้อมูลไปบันทึก
+            }
 
             try {
                 const response = await fetch(`/api/wines/${wine.id}/qty`, {
@@ -115,8 +131,11 @@
                 });
 
                 if (response.ok) {
+                    // อัปเดตสต็อกในตัวแปรทันที เพื่อให้สแกนขวดเดิมซ้ำได้อย่างแม่นยำ
+                    wine[location] += amount;
+
                     const actionText = action === 'in' ? 'รับเข้า' : 'เบิกออก';
-                    resultDiv.innerHTML = `✅ ${actionText} <b>${wine.name}</b> สำเร็จ!`;
+                    resultDiv.innerHTML = `✅ ${actionText} <b>${wine.name}</b> สำเร็จ! (คงเหลือ ${wine[location]})`;
                     playSound('success');
                 } else {
                     resultDiv.innerHTML = `<span class="text-red-500">❌ เกิดข้อผิดพลาดในการบันทึก</span>`;
