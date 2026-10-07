@@ -158,7 +158,16 @@ const logsFilePath = './logs.json';
 function readLogs() {
     if (!fs.existsSync(logsFilePath)) return [];
     const data = fs.readFileSync(logsFilePath, 'utf8');
-    return JSON.parse(data);
+    
+    // ดักจับกรณีไฟล์ถูกสร้างไว้แต่ข้างในว่างเปล่า หรือข้อมูล JSON พัง
+    if (!data || data.trim() === '') return []; 
+    
+    try {
+        return JSON.parse(data);
+    } catch (error) {
+        console.error("อ่านไฟล์ logs.json ไม่สำเร็จ:", error);
+        return []; 
+    }
 }
 
 function addLog(username, action, detail) {
