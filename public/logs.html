@@ -42,37 +42,51 @@
     </main>
 
     <script>
+        // ตรวจสอบการล็อกอิน
+        if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/login.html';
+        document.getElementById('user-display').innerText = `👤 ${localStorage.getItem('userName')}`;
+
         async function fetchLogs() {
             try {
-                const response = await fetch('/api/logs?t=' + new Date().getTime());
-                const logs = await response.json();
-                const tbody = document.getElementById('logs-table-body');
+                // เพิ่ม ?t=... ต่อท้าย URL เพื่อบังคับให้เบราว์เซอร์โหลดข้อมูลใหม่เสมอ (ไม่ติด Cache)
+                const res = await fetch('/api/logs?t=' + new Date().getTime());
+                const logs = await res.json();
                 
-                if (logs.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="4" class="px-6 py-8 text-center text-stone-500">ยังไม่มีประวัติการใช้งาน</td></tr>`;
-                    return;
-                }
-
-                logs.forEach(log => {
-                    let actionColor = 'text-stone-300';
-                    if (log.action.includes('นำเข้า') || log.action.includes('เพิ่ม')) actionColor = 'text-emerald-400 font-semibold';
-                    if (log.action.includes('ตัดสต็อก')) actionColor = 'text-red-400 font-semibold';
-
+                // ตรวจสอบว่าใน HTML ของคุณมี <tbody> ที่ id="logs-table-body" หรือไม่ (ถ้าตั้งชื่ออื่นให้เปลี่ยนให้ตรงกัน)
+                const tbody = document.getElementById('logs-table-body'); 
+                if (!tbody) return;
+                
+                tbody.innerHTML = ''; // ล้างข้อมูลเก่าก่อนแสดงของใหม่
+                
+                // นำข้อมูลมาวนลูปแสดงผล (ใช้ .reverse() เพื่อให้รายการล่าสุดอยู่บนสุด)
+                logs.reverse().forEach(log => {
                     const tr = document.createElement('tr');
-                    tr.className = 'border-b border-stone-800/50 hover:bg-stone-900/30 transition';
+                    tr.className = 'hover:bg-stone-900/50 transition border-b border-stone-800 text-sm text-center';
+                    
+                    // ปรับแต่งคอลัมน์ให้ตรงกับ โครงสร้าง Log ของคุณ
                     tr.innerHTML = `
-                        <td class="px-6 py-4 text-xs text-stone-400">${log.time}</td>
-                        <td class="px-6 py-4 text-amber-500 font-medium">${log.username}</td>
-                        <td class="px-6 py-4 ${actionColor}">${log.action}</td>
-                        <td class="px-6 py-4">${log.detail}</td>
+                        <td class="p-4 text-stone-400">${log.timestamp || log.date || '-'}</td>
+                        <td class="p-4 text-emerald-400 font-semibold">${log.user || 'System'}</td>
+                        <td class="p-4 text-amber-500">${log.action || '-'}</td>
+                        <td class="p-4 text-stone-200 text-left">${log.details || '-'}</td>
                     `;
                     tbody.appendChild(tr);
                 });
             } catch (error) {
-                console.error('Error fetching logs:', error);
+                console.error("Error fetching logs:", error);
             }
         }
+
+        // ดึงข้อมูลครั้งแรกเมื่อเปิดหน้า
         fetchLogs();
+
+        // ตั้งเวลาให้ดึงข้อมูลใหม่แบบอัตโนมัติทุกๆ 5 วินาที (เพื่อให้เห็นข้อมูลไหลมาเรื่อยๆ)
+        setInterval(fetchLogs, 5000);
+        
+        function logout() {
+            localStorage.clear();
+            window.location.href = '/login.html';
+        }
     </script>
 </body>
 </html>
