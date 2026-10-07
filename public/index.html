@@ -71,28 +71,33 @@
         </div>
     </main>
 
-    <script>
+   <script>
         document.getElementById('user-display').innerText = `👤 ${localStorage.getItem('userName')}`;
-        const userRole = localStorage.getItem('userRole'); // เก็บสิทธิ์การใช้งาน
+        const userRole = localStorage.getItem('userRole'); 
         
         let wines = [];
 
         async function fetchWines() {
-            const res = await fetch('/api/wines');
-            wines = await res.json();
-            renderTable(wines);
+            try {
+                const res = await fetch('/api/wines');
+                wines = await res.json();
+                renderTable(wines);
+            } catch (error) {
+                console.error("Error fetching wines:", error);
+            }
         }
 
-        function dataToRender.forEach(wine => {
+        function renderTable(dataToRender) {
+            const tbody = document.getElementById('stock-table-body');
+            tbody.innerHTML = '';
+            
+            let totalBottles = 0, totalFront = 0, lowStock = 0;
+
+            dataToRender.forEach(wine => {
                 const total = wine.qty_front + wine.qty_back + wine.qty_home;
                 totalBottles += total;
                 totalFront += wine.qty_front;
                 if (total < 5) lowStock++;
-
-                // แสดงเฉพาะตัวเลขจำนวนสต็อก (ลบปุ่ม +/- ออกทั้งหมด)
-                const frontCol = `<span class="font-semibold text-stone-200 text-base">${wine.qty_front}</span>`;
-                const backCol  = `<span class="font-semibold text-stone-200 text-base">${wine.qty_back}</span>`;
-                const homeCol  = `<span class="font-semibold text-stone-200 text-base">${wine.qty_home}</span>`;
 
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-stone-900/50 transition text-center';
@@ -107,9 +112,9 @@
                     </td>
                     <td class="p-4 text-amber-400 font-semibold">฿${wine.price.toLocaleString()}</td>
                     
-                    <td class="p-4 bg-stone-800/10">${frontCol}</td>
-                    <td class="p-4 bg-stone-800/10">${backCol}</td>
-                    <td class="p-4 bg-stone-800/10">${homeCol}</td>
+                    <td class="p-4 bg-stone-800/10"><span class="font-semibold text-stone-200 text-base">${wine.qty_front}</span></td>
+                    <td class="p-4 bg-stone-800/10"><span class="font-semibold text-stone-200 text-base">${wine.qty_back}</span></td>
+                    <td class="p-4 bg-stone-800/10"><span class="font-semibold text-stone-200 text-base">${wine.qty_home}</span></td>
                     
                     <td class="p-4">
                         <span class="px-3 py-1 rounded-full text-sm font-bold ${total < 5 ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'}">
@@ -124,22 +129,6 @@
             document.getElementById('total-bottles').innerText = totalBottles;
             document.getElementById('total-front').innerText = totalFront;
             document.getElementById('low-stock-count').innerText = lowStock;
-        }
-
-        async function adjustQty(id, location, amount) { // <--- เติมปีกกาเปิด { ตรงนี้
-            const userName = localStorage.getItem('userName'); // ดึงชื่อผู้ใช้
-            try {
-                const response = await fetch(`/api/wines/${id}/qty`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ location, amount, user: userName }) // ส่งชื่อไปด้วย
-                });
-                
-                // สั่งให้ดึงข้อมูลใหม่มาแสดงหลังจากอัปเดตสต็อกเสร็จ
-                fetchWines();
-            } catch (error) { // <--- ปิดบล็อก try และดักจับ error ให้ถูกต้อง
-                console.error('Error:', error);
-            }
         }
 
         function filterTable() {
