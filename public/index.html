@@ -138,7 +138,7 @@
             document.getElementById('low-stock-count').innerText = lowStock;
         }
 
-        async function adjustQty(id, location, amount) 
+        async function adjustQty(id, location, amount) { // <--- เติมปีกกาเปิด { ตรงนี้
             const userName = localStorage.getItem('userName'); // ดึงชื่อผู้ใช้
             try {
                 const response = await fetch(`/api/wines/${id}/qty`, {
@@ -146,8 +146,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ location, amount, user: userName }) // ส่งชื่อไปด้วย
                 });
-
-            fetchWines();
+                
+                // สั่งให้ดึงข้อมูลใหม่มาแสดงหลังจากอัปเดตสต็อกเสร็จ
+                fetchWines();
+            } catch (error) { // <--- ปิดบล็อก try และดักจับ error ให้ถูกต้อง
+                console.error('Error:', error);
+            }
         }
 
         function filterTable() {
