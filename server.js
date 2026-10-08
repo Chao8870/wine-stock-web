@@ -13,7 +13,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ==========================================
 // นำ Connection String ที่ได้จาก MongoDB Atlas มาใส่ในเครื่องหมายคำพูดด้านล่างนี้
 // อย่าลืมเปลี่ยน <password> เป็นรหัสผ่านที่คุณตั้งไว้
-const MONGODB_URI = mongodb+srv://chawalitadmin:PPIj6t3DNVcoHmZr@cluster0.sqfo1dz.mongodb.net/?appName=Cluster0;
+const MONGODB_URI = "mongodb+srv://chawalitadmin:PPIj6t3DNVcoHmZr@cluster0.sqfo1dz.mongodb.net/?appName=Cluster0";
 
 mongoose.connect(MONGODB_URI)
     .then(() => console.log('✅ เชื่อมต่อ MongoDB สำเร็จ!'))
