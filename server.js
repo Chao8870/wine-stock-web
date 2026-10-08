@@ -325,7 +325,9 @@ app.patch('/api/wines/:id/qty', async (req, res) => {
             
             const action = amount > 0 ? 'นำเข้าสต็อก (In)' : 'ตัดสต็อก (Out)';
             const locName = location === 'qty_front' ? 'หน้าร้าน' : location === 'qty_back' ? 'หลังร้าน' : 'บ้าน';
-            addLog(user || 'ไม่ทราบชื่อ', action, `รหัส: ${id} | ${locName} (${amount > 0 ? '+'+amount : amount} ขวด)`);
+            
+            // 💡 อัปเดตให้บันทึก 'ชื่อไวน์' ลงไปในประวัติการใช้งานด้วย
+            addLog(user || 'ไม่ทราบชื่อ', action, `รหัส: ${id} | ชื่อ: ${wine.name} | ${locName} (${amount > 0 ? '+'+amount : amount} ขวด)`);
             
             res.json(wine);
         } else {
