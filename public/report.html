@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานประจำวัน - Wine Stock</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Prompt', sans-serif; } </style>
+</head>
+<body class="bg-stone-900 text-stone-100 min-h-screen flex flex-col">
+
+    <script>
+        if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/login.html';
+    </script>
+
+    <header class="bg-stone-950 border-b border-stone-800 py-4 px-6 flex justify-between items-center sticky top-0 z-10">
+        <div class="flex items-center space-x-4">
+            <a href="/menu.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1.5 rounded-lg text-sm transition">⬅️ กลับเมนูหลัก</a>
+            <h1 class="text-xl font-semibold text-purple-400 hidden sm:block">📊 รายงานความเคลื่อนไหวประจำวัน</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button onclick="window.print()" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-4 py-1.5 rounded-lg text-sm transition">🖨️ พิมพ์รายงาน</button>
+            <span id="user-display" class="text-sm text-stone-300 bg-stone-900 px-3 py-1 rounded-lg border border-stone-800"></span>
+        </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto py-8 w-full px-4 flex-grow">
+        <div class="bg-stone-950 rounded-xl border border-stone-800 overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-stone-900 text-stone-400 text-sm uppercase tracking-wider border-b border-stone-800 text-center">
+                            <th class="p-4 text-left w-1/4">วันที่</th>
+                            <th class="p-4 w-1/4 text-emerald-400">นำเข้าสต็อก (ขวด)</th>
+                            <th class="p-4 w-1/4 text-red-400">เบิกออกสต็อก (ขวด)</th>
+                            <th class="p-4 w-1/4 text-amber-400">เพิ่มรายการใหม่ (รายการ)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="report-table-body" class="divide-y divide-stone-800 text-base">
+                        <!-- ข้อมูลรายงานจะแสดงตรงนี้ -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('user-display').innerText = `👤 ${localStorage.getItem('userName')}`;
+
+        async function generateReport() {
+            try {
+                // ดึงข้อมูล Log ทั้งหมดมาคำนวณ
+                const res = await fetch('/api/logs?t=' + new Date().getTime());
+                const logs = await res.json();
+                
+                const reportData = {};
+
+                // จัดกลุ่มข้อมูลตามวันที่ และคำนวณยอด
+                logs.forEach(log => {
+                    if (!log.timestamp) return;
+                    
+                    // ดึงเฉพาะ "วันที่" ออกมาจาก (เช่น "7/10/2569 14:53:44" -> "7/10/2569")
+                    const dateStr = log.timestamp.split(' ')[0]; 
+                    
+                    if (!reportData[dateStr]) {
+                        reportData[dateStr] = { in: 0, out: 0, newItems: 0 };
+                    }
+
+                    // ดึงตัวเลขจำนวนขวดออกจากข้อความ เช่น "หน้าร้าน (+1 ขวด)" หรือ "(-1 ขวด)"
+                    const qtyMatch = log.details ? log.details.match(/\(([-+]?\d+)\s*ขวด\)/) : null;
+                    
+                    if (log.action.includes('In') || log.action.includes('นำเข้า')) {
+                        const qty = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+                        reportData[dateStr].in += Math.abs(qty);
+                    } else if (log.action.includes('Out') || log.action.includes('ตัด')) {
+                        const qty = qtyMatch ? parseInt(qtyMatch[1]) : 1;
+                        reportData[dateStr].out += Math.abs(qty);
+                    } else if (log.action.includes('เพิ่มสินค้าใหม่')) {
+                        reportData[dateStr].newItems += 1;
+                    }
+                });
+
+                const tbody = document.getElementById('report-table-body');
+                tbody.innerHTML = '';
+
+                // แปลง object เป็น array และเรียงวันที่จากล่าสุดไปเก่า
+                const sortedDates = Object.keys(reportData).sort((a, b) => {
+                    // แปลงรูปแบบ วัน/เดือน/ปี(พ.ศ.) ให้เป็นค่าที่เรียงลำดับได้
+                    const [d1, m1, y1] = a.split('/');
+                    const [d2, m2, y2] = b.split('/');
+                    return new Date(`${y2-543}-${m2}-${d2}`) - new Date(`${y1-543}-${m1}-${d1}`);
+                });
+
+                if (sortedDates.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-stone-500">ยังไม่มีข้อมูลการเคลื่อนไหว</td></tr>`;
+                    return;
+                }
+
+                // นำข้อมูลที่คำนวณแล้วมาสร้างตาราง
+                sortedDates.forEach(date => {
+                    const data = reportData[date];
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-stone-900/50 transition text-center';
+                    
+                    tr.innerHTML = `
+                        <td class="p-4 text-left font-semibold text-stone-200">${date}</td>
+                        <td class="p-4 text-emerald-400 font-bold text-lg">${data.in > 0 ? '+' + data.in : '-'}</td>
+                        <td class="p-4 text-red-400 font-bold text-lg">${data.out > 0 ? '-' + data.out : '-'}</td>
+                        <td class="p-4 text-amber-500 font-semibold">${data.newItems > 0 ? data.newItems : '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+            } catch (error) {
+                console.error("Error generating report:", error);
+                const tbody = document.getElementById('report-table-body');
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">❌ เกิดข้อผิดพลาดในการดึงข้อมูลรายงาน</td></tr>`;
+            }
+        }
+
+        // ดึงข้อมูลแสดงทันทีที่เข้าหน้านี้
+        generateReport();
+    </script>
+</body>
+</html>
