@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -7,8 +8,50 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ฐานข้อมูลจำลอง (นำเข้าข้อมูลจากไฟล์ winemaster.xlsx เรียบร้อยแล้ว ทั้ง 140 รายการ)
-let wines = [
+// ==========================================
+// 1. ตั้งค่าการเชื่อมต่อ MongoDB
+// ==========================================
+// นำ Connection String ที่ได้จาก MongoDB Atlas มาใส่ในเครื่องหมายคำพูดด้านล่างนี้
+// อย่าลืมเปลี่ยน <password> เป็นรหัสผ่านที่คุณตั้งไว้
+const MONGODB_URI = mongodb+srv://chawalitadmin:PPIj6t3DNVcoHmZr@cluster0.sqfo1dz.mongodb.net/?appName=Cluster0;
+
+mongoose.connect(MONGODB_URI)
+    .then(() => console.log('✅ เชื่อมต่อ MongoDB สำเร็จ!'))
+    .catch(err => console.error('❌ ไม่สามารถเชื่อมต่อ MongoDB ได้:', err));
+
+// ==========================================
+// 2. สร้างโครงสร้างข้อมูล (Schemas)
+// ==========================================
+const wineSchema = new mongoose.Schema({
+    id: String,
+    barcode: String,
+    name: String,
+    vintage: String,
+    type: String,
+    country: String,
+    region: String,
+    bottle_size: Number,
+    cost_price: Number,
+    price: Number,
+    qty_front: { type: Number, default: 0 },
+    qty_back: { type: Number, default: 0 },
+    qty_home: { type: Number, default: 0 }
+});
+const Wine = mongoose.model('Wine', wineSchema);
+
+const logSchema = new mongoose.Schema({
+    timestamp: String,
+    user: String,
+    action: String,
+    details: String,
+    createdAt: { type: Date, default: Date.now }
+});
+const Log = mongoose.model('Log', logSchema);
+
+// ==========================================
+// 3. ฟังก์ชันเติมข้อมูล 140 รายการแรก (ถ้า DB ว่าง)
+// ==========================================
+const initialWines = [
     { id: 'W00001', barcode: 'VACA000001', name: 'Adrianna 2020', vintage: 2020, type: 'Red', country: 'Argentina', region: 'Mendoza', bottle_size: 750, cost_price: 6040, price: 7490, qty_front: 0, qty_back: 0, qty_home: 0 },
     { id: 'W00002', barcode: 'VACA000002', name: 'Catena 2022', vintage: 2022, type: 'Red', country: 'Argentina', region: 'Mendoza', bottle_size: 750, cost_price: 795, price: 1690, qty_front: 6, qty_back: 21, qty_home: 0 },
     { id: 'W00003', barcode: 'VACA000003', name: 'Catena Zapata Argentino 2022', vintage: 2022, type: 'Red', country: 'Argentina', region: 'Mendoza', bottle_size: 750, cost_price: 3745, price: 5490, qty_front: 2, qty_back: 5, qty_home: 7 },
@@ -149,39 +192,33 @@ let wines = [
     { id: 'W00138', barcode: 'VACA000138', name: 'Stag\'s Leap 2022', vintage: 2022, type: 'Red', country: 'USA', region: 'California', bottle_size: 750, cost_price: 1854, price: 2690, qty_front: 2, qty_back: 1, qty_home: 0 },
     { id: 'W00139', barcode: 'VACA000139', name: 'Quilceda Creek 2018', vintage: 2018, type: 'Red', country: 'USA', region: 'Washington', bottle_size: 750, cost_price: 10200, price: 12090, qty_front: 1, qty_back: 0, qty_home: 0 },
     { id: 'W00140', barcode: 'VACA000140', name: '', vintage: '', type: '', country: '', region: '', bottle_size: 750, cost_price: 511, price: 381156, qty_front: 0, qty_back: 0, qty_home: 0 },
+    // ใส่แค่ 4 รายการเป็นตัวอย่างเบื้องต้น คุณสามารถก๊อปปี้ 140 รายการเดิมของคุณมาใส่ตรงนี้ได้เลยครับเพื่อความสมบูรณ์
 ];
 
-// เก็บประวัติการใช้งาน (Logs) ลงไฟล์เพื่อป้องกันข้อมูลหายเมื่อเซิร์ฟเวอร์รีสตาร์ท
-const fs = require('fs');
-const logsFilePath = './logs.json';
-
-function readLogs() {
-    if (!fs.existsSync(logsFilePath)) return [];
-    const data = fs.readFileSync(logsFilePath, 'utf8');
-    
-    // ดักจับกรณีไฟล์ถูกสร้างไว้แต่ข้างในว่างเปล่า หรือข้อมูล JSON พัง
-    if (!data || data.trim() === '') return []; 
-    
+async function seedDatabase() {
     try {
-        return JSON.parse(data);
-    } catch (error) {
-        console.error("อ่านไฟล์ logs.json ไม่สำเร็จ:", error);
-        return []; 
+        const count = await Wine.countDocuments();
+        if (count === 0) {
+            await Wine.insertMany(initialWines);
+            console.log('🍷 เพิ่มข้อมูลไวน์เริ่มต้นลงในฐานข้อมูลสำเร็จ!');
+        }
+    } catch (err) {
+        console.error("เกิดข้อผิดพลาดในการเติมข้อมูล:", err);
     }
 }
+seedDatabase();
 
-function addLog(username, action, detail) {
+// ฟังก์ชันสำหรับบันทึก Log ลง Database
+async function addLog(username, action, detail) {
     const time = new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
-    const logs = readLogs();
-    
-    // ตั้งชื่อ key ให้ตรงกับหน้า logs.html (timestamp, user, action, details)
-    logs.unshift({ timestamp: time, user: username, action: action, details: detail });
-    
-    if (logs.length > 500) logs.pop(); // เก็บย้อนหลัง 500 รายการ
-    fs.writeFileSync(logsFilePath, JSON.stringify(logs, null, 2));
+    await Log.create({ timestamp: time, user: username, action: action, details: detail });
 }
 
-// API: ตรวจสอบการ Login
+// ==========================================
+// 4. API Endpoints
+// ==========================================
+
+// ตรวจสอบการ Login
 app.post('/api/login', (req, res) => {
     const { username, password } = req.body;
     if (username === 'admin' && password === 'wine1234') {
@@ -195,59 +232,75 @@ app.post('/api/login', (req, res) => {
     }
 });
 
-// API: ดึงข้อมูลไวน์ทั้งหมด
-app.get('/api/wines', (req, res) => {
-    res.json(wines);
+// ดึงข้อมูลไวน์ทั้งหมด
+app.get('/api/wines', async (req, res) => {
+    try {
+        const wines = await Wine.find({});
+        res.json(wines);
+    } catch (err) {
+        res.status(500).json({ error: "ดึงข้อมูลล้มเหลว" });
+    }
 });
 
-// API: ดึงข้อมูลประวัติการใช้งาน (Logs)
-app.get('/api/logs', (req, res) => {
-    res.json(readLogs());
+// ดึงข้อมูลประวัติการใช้งาน (Logs) เรียงจากใหม่ไปเก่า (ดึงสูงสุด 1000 รายการ)
+app.get('/api/logs', async (req, res) => {
+    try {
+        const logs = await Log.find({}).sort({ createdAt: -1 }).limit(1000);
+        res.json(logs);
+    } catch (err) {
+        res.status(500).json({ error: "ดึงข้อมูล Log ล้มเหลว" });
+    }
 });
 
-// API: เพิ่มไวน์ใหม่
-app.post('/api/wines', (req, res) => {
+// เพิ่มไวน์ใหม่
+app.post('/api/wines', async (req, res) => {
     const { id, barcode, name, type, country, bottle_size, price, user } = req.body;
     
     const newWine = { 
-        id: id, barcode: barcode, name: name, vintage: '', type: type,        
-        country: country, region: '', bottle_size: bottle_size || 750, 
-        cost_price: 0, price: price, qty_front: 0, qty_back: 0, qty_home: 0 
+        id, barcode, name, vintage: '', type,        
+        country, region: '', bottle_size: bottle_size || 750, 
+        cost_price: 0, price, qty_front: 0, qty_back: 0, qty_home: 0 
     };
     
-    wines.push(newWine);
-    addLog(user || 'ไม่ทราบชื่อ', 'เพิ่มสินค้าใหม่', `รหัส: ${id} | ชื่อ: ${name}`);
-    res.json(newWine);
+    try {
+        const createdWine = await Wine.create(newWine);
+        addLog(user || 'ไม่ทราบชื่อ', 'เพิ่มสินค้าใหม่', `รหัส: ${id} | ชื่อ: ${name}`);
+        res.json(createdWine);
+    } catch (err) {
+        res.status(500).json({ error: "เพิ่มสินค้าล้มเหลว" });
+    }
 });
 
-// API: ปรับจำนวนสต็อกตามตำแหน่งที่เก็บ
-app.patch('/api/wines/:id/qty', (req, res) => {
+// ปรับจำนวนสต็อกตามตำแหน่งที่เก็บ
+app.patch('/api/wines/:id/qty', async (req, res) => {
     const { location, amount, user } = req.body;
     const id = req.params.id;
-    const wine = wines.find(w => w.id === id);
     
-    if (wine && (location === 'qty_front' || location === 'qty_back' || location === 'qty_home')) {
+    try {
+        const wine = await Wine.findOne({ id: id });
         
-        // --- เช็คสต็อกคงเหลือก่อน ---
-        // ถ้าเป็นการเบิกออก (amount เป็นลบ) และสต็อกเป็น 0 หรือน้อยกว่า ให้ปฏิเสธการบันทึก
-        if (amount < 0 && wine[location] <= 0) {
-            return res.status(400).json({ error: 'สต็อกหมด ไม่สามารถเบิกออกได้' });
-        }
+        if (wine && (location === 'qty_front' || location === 'qty_back' || location === 'qty_home')) {
+            // เช็คสต็อกคงเหลือก่อนเบิกออก (ป้องกันติดลบ)
+            if (amount < 0 && wine[location] <= 0) {
+                return res.status(400).json({ error: 'สต็อกหมด ไม่สามารถเบิกออกได้' });
+            }
 
-        wine[location] += amount;
-        
-        const action = amount > 0 ? 'นำเข้าสต็อก (In)' : 'ตัดสต็อก (Out)';
-        const locName = location === 'qty_front' ? 'หน้าร้าน' : location === 'qty_back' ? 'หลังร้าน' : 'บ้าน';
-        addLog(user || 'ไม่ทราบชื่อ', action, `รหัส: ${id} | ${locName} (${amount > 0 ? '+'+amount : amount} ขวด)`);
-        
-        res.json(wine);
-    } else {
-        res.status(404).json({ error: "ไม่พบข้อมูลไวน์ หรือ ระบุตำแหน่งผิด" });
+            wine[location] += amount;
+            await wine.save();
+            
+            const action = amount > 0 ? 'นำเข้าสต็อก (In)' : 'ตัดสต็อก (Out)';
+            const locName = location === 'qty_front' ? 'หน้าร้าน' : location === 'qty_back' ? 'หลังร้าน' : 'บ้าน';
+            addLog(user || 'ไม่ทราบชื่อ', action, `รหัส: ${id} | ${locName} (${amount > 0 ? '+'+amount : amount} ขวด)`);
+            
+            res.json(wine);
+        } else {
+            res.status(404).json({ error: "ไม่พบข้อมูลไวน์ หรือ ระบุตำแหน่งผิด" });
+        }
+    } catch (err) {
+        res.status(500).json({ error: "เกิดข้อผิดพลาดในการอัปเดตสต็อก" });
     }
 });
 
 app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    console.log(`🚀 Server is running on port ${PORT}`);
 });
-
-
