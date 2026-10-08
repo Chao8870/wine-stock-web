@@ -25,20 +25,21 @@
         </div>
     </header>
 
-    <main class="max-w-4xl mx-auto py-8 w-full px-4 flex-grow">
+    <main class="max-w-5xl mx-auto py-8 w-full px-4 flex-grow">
         <div class="bg-stone-950 rounded-xl border border-stone-800 overflow-hidden shadow-xl">
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse whitespace-nowrap">
                     <thead>
                         <tr class="bg-stone-900 text-stone-400 text-sm uppercase tracking-wider border-b border-stone-800 text-center">
-                            <th class="p-4 text-left w-1/4">วันที่</th>
-                            <th class="p-4 w-1/4 text-emerald-400">นำเข้าสต็อก (ขวด)</th>
-                            <th class="p-4 w-1/4 text-red-400">เบิกออกสต็อก (ขวด)</th>
-                            <th class="p-4 w-1/4 text-amber-400">เพิ่มรายการใหม่ (รายการ)</th>
+                            <th class="p-4 text-left">วันที่</th>
+                            <th class="p-4 text-left">รหัสไวน์</th>
+                            <th class="p-4 text-left w-1/3">ชื่อไวน์</th>
+                            <th class="p-4 text-emerald-400">นำเข้า (ขวด)</th>
+                            <th class="p-4 text-red-400">เบิกออก (ขวด)</th>
                         </tr>
                     </thead>
                     <tbody id="report-table-body" class="divide-y divide-stone-800 text-base">
-                        <!-- ข้อมูลรายงานจะแสดงตรงนี้ -->
+                        <tr><td colspan="5" class="p-8 text-center text-stone-500">กำลังโหลดข้อมูล...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -50,76 +51,107 @@
 
         async function generateReport() {
             try {
-                // ดึงข้อมูล Log ทั้งหมดมาคำนวณ
-                const res = await fetch('/api/logs?t=' + new Date().getTime());
-                const logs = await res.json();
+                // ดึงข้อมูลไวน์ (เพื่อเอามาจับคู่ชื่อ) และข้อมูล Logs พร้อมกัน
+                const [winesRes, logsRes] = await Promise.all([
+                    fetch('/api/wines?t=' + new Date().getTime()),
+                    fetch('/api/logs?t=' + new Date().getTime())
+                ]);
                 
+                const wines = await winesRes.json();
+                const logs = await logsRes.json();
+                
+                // สร้างพจนานุกรม รหัสไวน์ -> ชื่อไวน์
+                const wineDict = {};
+                wines.forEach(w => wineDict[w.id] = w.name);
+
                 const reportData = {};
 
-                // จัดกลุ่มข้อมูลตามวันที่ และคำนวณยอด
+                // ประมวลผล Log แต่ละบรรทัด
                 logs.forEach(log => {
                     if (!log.timestamp) return;
                     
-                    // ดึงเฉพาะ "วันที่" ออกมาจาก (เช่น "7/10/2569 14:53:44" -> "7/10/2569")
                     const dateStr = log.timestamp.split(' ')[0]; 
                     
-                    if (!reportData[dateStr]) {
-                        reportData[dateStr] = { in: 0, out: 0, newItems: 0 };
+                    // ดึงรหัสไวน์ออกจากข้อความ
+                    const idMatch = log.details ? log.details.match(/รหัส:\s*([A-Za-z0-9]+)/) : null;
+                    if (!idMatch) return; // ข้าม Log ที่ไม่มีรหัสไวน์ (เช่น Log เข้าสู่ระบบ)
+                    
+                    const wineId = idMatch[1];
+                    
+                    // หาชื่อไวน์ (ดึงจากฐานข้อมูลก่อน ถ้าไม่มีค่อยดึงจากข้อความ Log)
+                    const nameMatch = log.details.match(/ชื่อ:\s*([^|]+)/);
+                    const wineName = wineDict[wineId] || (nameMatch ? nameMatch[1].trim() : '-');
+
+                    // สร้าง Key จัดกลุ่ม: วันที่ + รหัสไวน์
+                    const groupKey = `${dateStr}_${wineId}`;
+                    
+                    if (!reportData[groupKey]) {
+                        reportData[groupKey] = { 
+                            date: dateStr, 
+                            id: wineId, 
+                            name: wineName, 
+                            in: 0, 
+                            out: 0 
+                        };
                     }
 
-                    // ดึงตัวเลขจำนวนขวดออกจากข้อความ เช่น "หน้าร้าน (+1 ขวด)" หรือ "(-1 ขวด)"
+                    // ดึงจำนวนขวด
                     const qtyMatch = log.details ? log.details.match(/\(([-+]?\d+)\s*ขวด\)/) : null;
+                    const qty = qtyMatch ? parseInt(qtyMatch[1]) : 1;
                     
                     if (log.action.includes('In') || log.action.includes('นำเข้า')) {
-                        const qty = qtyMatch ? parseInt(qtyMatch[1]) : 1;
-                        reportData[dateStr].in += Math.abs(qty);
+                        reportData[groupKey].in += Math.abs(qty);
                     } else if (log.action.includes('Out') || log.action.includes('ตัด')) {
-                        const qty = qtyMatch ? parseInt(qtyMatch[1]) : 1;
-                        reportData[dateStr].out += Math.abs(qty);
-                    } else if (log.action.includes('เพิ่มสินค้าใหม่')) {
-                        reportData[dateStr].newItems += 1;
+                        reportData[groupKey].out += Math.abs(qty);
                     }
                 });
 
                 const tbody = document.getElementById('report-table-body');
                 tbody.innerHTML = '';
 
-                // แปลง object เป็น array และเรียงวันที่จากล่าสุดไปเก่า
-                const sortedDates = Object.keys(reportData).sort((a, b) => {
-                    // แปลงรูปแบบ วัน/เดือน/ปี(พ.ศ.) ให้เป็นค่าที่เรียงลำดับได้
-                    const [d1, m1, y1] = a.split('/');
-                    const [d2, m2, y2] = b.split('/');
-                    return new Date(`${y2-543}-${m2}-${d2}`) - new Date(`${y1-543}-${m1}-${d1}`);
+                // แปลงข้อมูลให้เรียงวันที่จากล่าสุดไปเก่า
+                const sortedKeys = Object.keys(reportData).sort((a, b) => {
+                    const dataA = reportData[a];
+                    const dataB = reportData[b];
+                    const [d1, m1, y1] = dataA.date.split('/');
+                    const [d2, m2, y2] = dataB.date.split('/');
+                    const dateDiff = new Date(`${y2-543}-${m2}-${d2}`) - new Date(`${y1-543}-${m1}-${d1}`);
+                    if (dateDiff === 0) return dataA.id.localeCompare(dataB.id); // ถ้าวันเดียวกันเรียงตามรหัส
+                    return dateDiff;
                 });
 
-                if (sortedDates.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-stone-500">ยังไม่มีข้อมูลการเคลื่อนไหว</td></tr>`;
+                if (sortedKeys.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-stone-500">ยังไม่มีข้อมูลการเคลื่อนไหว</td></tr>`;
                     return;
                 }
 
-                // นำข้อมูลที่คำนวณแล้วมาสร้างตาราง
-                sortedDates.forEach(date => {
-                    const data = reportData[date];
+                // นำข้อมูลมาวาดลงตาราง
+                let currentDate = '';
+                sortedKeys.forEach(key => {
+                    const data = reportData[key];
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-stone-900/50 transition text-center';
                     
+                    // จัดกลุ่มแสดงวันที่ (ถ้าวันเดียวกัน ให้ช่องวันที่ว่างไว้เพื่อความสวยงาม)
+                    const displayDate = (data.date !== currentDate) ? data.date : '';
+                    currentDate = data.date;
+
                     tr.innerHTML = `
-                        <td class="p-4 text-left font-semibold text-stone-200">${date}</td>
+                        <td class="p-4 text-left font-semibold text-stone-300">${displayDate}</td>
+                        <td class="p-4 text-left text-purple-400 font-mono">${data.id}</td>
+                        <td class="p-4 text-left text-stone-200 truncate max-w-xs">${data.name}</td>
                         <td class="p-4 text-emerald-400 font-bold text-lg">${data.in > 0 ? '+' + data.in : '-'}</td>
                         <td class="p-4 text-red-400 font-bold text-lg">${data.out > 0 ? '-' + data.out : '-'}</td>
-                        <td class="p-4 text-amber-500 font-semibold">${data.newItems > 0 ? data.newItems : '-'}</td>
                     `;
                     tbody.appendChild(tr);
                 });
 
             } catch (error) {
                 console.error("Error generating report:", error);
-                const tbody = document.getElementById('report-table-body');
-                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">❌ เกิดข้อผิดพลาดในการดึงข้อมูลรายงาน</td></tr>`;
+                document.getElementById('report-table-body').innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">❌ เกิดข้อผิดพลาดในการดึงข้อมูลรายงาน</td></tr>`;
             }
         }
 
-        // ดึงข้อมูลแสดงทันทีที่เข้าหน้านี้
         generateReport();
     </script>
 </body>
