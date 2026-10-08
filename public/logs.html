@@ -49,14 +49,25 @@
 
         async function fetchLogs() {
             try {
-                // เพิ่ม ?t=... เพื่อบังคับไม่ให้เบราว์เซอร์จำค่าแคช (Cache)
+                console.log("กำลังดึงข้อมูล Log..."); // เช็คใน Console
                 const res = await fetch('/api/logs?t=' + new Date().getTime());
                 const logs = await res.json();
                 
+                console.log("ข้อมูลที่ได้จากเซิร์ฟเวอร์:", logs); // เช็คว่าได้ข้อมูลมาไหม
+                
                 const tbody = document.getElementById('logs-table-body'); 
+                if (!tbody) {
+                    console.error("หาตารางไม่เจอ!");
+                    return;
+                }
+                
                 tbody.innerHTML = ''; 
                 
-                // วนลูปนำข้อมูลมาสร้างเป็นตาราง
+                if (logs.length === 0) {
+                     tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-stone-500">ยังไม่มีประวัติการใช้งาน</td></tr>`;
+                     return;
+                }
+                
                 logs.forEach(log => {
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-stone-900/50 transition text-center';
@@ -70,16 +81,13 @@
                     tbody.appendChild(tr);
                 });
             } catch (error) {
-                console.error("Error fetching logs:", error);
+                console.error("เกิดข้อผิดพลาดในการดึงข้อมูล:", error);
                 const tbody = document.getElementById('logs-table-body'); 
-                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">❌ ไม่สามารถดึงข้อมูลประวัติได้</td></tr>`;
+                if(tbody) tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">❌ ไม่สามารถดึงข้อมูลประวัติได้</td></tr>`;
             }
         }
 
-        // เรียกใช้งานครั้งแรกทันที
         fetchLogs();
-
-        // ตั้งเวลาให้รีเฟรชข้อมูลอัตโนมัติทุกๆ 5 วินาที
         setInterval(fetchLogs, 5000);
     </script>
 </body>
