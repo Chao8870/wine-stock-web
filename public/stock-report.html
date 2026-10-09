@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานยอดคงเหลือและต้นทุน - Wine Stock</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style> body { font-family: 'Prompt', sans-serif; } </style>
+</head>
+<body class="bg-stone-900 text-stone-100 min-h-screen flex flex-col">
+
+    <script>
+        if (localStorage.getItem('isLoggedIn') !== 'true') window.location.href = '/login.html';
+    </script>
+
+    <header class="bg-stone-950 border-b border-stone-800 py-4 px-6 flex justify-between items-center sticky top-0 z-10">
+        <div class="flex items-center space-x-4">
+            <a href="/menu.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-3 py-1.5 rounded-lg text-sm transition">⬅️ กลับเมนูหลัก</a>
+            <h1 class="text-xl font-semibold text-blue-400 hidden sm:block">📦 รายงานยอดคงเหลือและต้นทุน</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+            <button onclick="window.print()" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-4 py-1.5 rounded-lg text-sm transition">🖨️ พิมพ์รายงาน</button>
+            <span id="user-display" class="text-sm text-stone-300 bg-stone-900 px-3 py-1 rounded-lg border border-stone-800"></span>
+        </div>
+    </header>
+
+    <main class="max-w-6xl mx-auto py-8 w-full px-4 flex-grow">
+        
+        <!-- สรุปภาพรวม -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-stone-950 border border-stone-800 rounded-xl p-6 flex items-center justify-between">
+                <div>
+                    <p class="text-stone-400 text-sm">จำนวนสต็อกคงเหลือรวม</p>
+                    <h2 id="summary-qty" class="text-3xl font-bold text-emerald-400 mt-1">0 ขวด</h2>
+                </div>
+                <span class="text-4xl">🍾</span>
+            </div>
+            <div class="bg-stone-950 border border-stone-800 rounded-xl p-6 flex items-center justify-between">
+                <div>
+                    <p class="text-stone-400 text-sm">มูลค่าต้นทุนรวมทั้งสิ้น</p>
+                    <h2 id="summary-cost" class="text-3xl font-bold text-blue-400 mt-1">฿0</h2>
+                </div>
+                <span class="text-4xl">💰</span>
+            </div>
+        </div>
+
+        <!-- ตารางรายละเอียด -->
+        <div class="bg-stone-950 rounded-xl border border-stone-800 overflow-hidden shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse whitespace-nowrap">
+                    <thead>
+                        <tr class="bg-stone-900 text-stone-400 text-sm uppercase tracking-wider border-b border-stone-800 text-center">
+                            <th class="p-4 text-left">รหัส / บาร์โค้ด</th>
+                            <th class="p-4 text-left">ชื่อไวน์</th>
+                            <th class="p-4 text-right">คงเหลือ (ขวด)</th>
+                            <th class="p-4 text-right">ต้นทุน/ขวด</th>
+                            <th class="p-4 text-right text-blue-400">มูลค่ารวม</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stock-table-body" class="divide-y divide-stone-800 text-base">
+                        <tr><td colspan="5" class="p-8 text-center text-stone-500">กำลังโหลดข้อมูล...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.getElementById('user-display').innerText = `👤 ${localStorage.getItem('userName')}`;
+
+        async function loadStockReport() {
+            try {
+                const res = await fetch('/api/wines?t=' + new Date().getTime());
+                let wines = await res.json();
+                
+                // เรียงลำดับตามรหัสไวน์
+                wines.sort((a, b) => a.id.localeCompare(b.id));
+
+                const tbody = document.getElementById('stock-table-body');
+                tbody.innerHTML = '';
+
+                let grandTotalQty = 0;
+                let grandTotalCost = 0;
+
+                wines.forEach(wine => {
+                    const totalQty = (wine.qty_front || 0) + (wine.qty_back || 0) + (wine.qty_home || 0);
+                    const costPrice = wine.cost_price || 0;
+                    const totalValue = totalQty * costPrice;
+
+                    // บวกเข้ายอดรวม
+                    grandTotalQty += totalQty;
+                    grandTotalCost += totalValue;
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-stone-900/50 transition';
+                    
+                    tr.innerHTML = `
+                        <td class="p-4 text-left">
+                            <div class="font-bold text-stone-300">${wine.id}</div>
+                            <div class="text-xs text-stone-500">${wine.barcode}</div>
+                        </td>
+                        <td class="p-4 text-left text-stone-200 truncate max-w-xs">
+                            ${wine.name} <span class="text-stone-500 text-sm">(${wine.vintage || '-'})</span>
+                        </td>
+                        <td class="p-4 text-right font-bold ${totalQty > 0 ? 'text-emerald-400' : 'text-stone-600'}">
+                            ${totalQty.toLocaleString('th-TH')}
+                        </td>
+                        <td class="p-4 text-right text-stone-400">
+                            ฿${costPrice.toLocaleString('th-TH')}
+                        </td>
+                        <td class="p-4 text-right font-bold text-blue-400">
+                            ฿${totalValue.toLocaleString('th-TH')}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                if (wines.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-stone-500">ยังไม่มีข้อมูลไวน์ในระบบ</td></tr>`;
+                }
+
+                // อัปเดตตัวเลขสรุปด้านบน
+                document.getElementById('summary-qty').innerText = `${grandTotalQty.toLocaleString('th-TH')} ขวด`;
+                document.getElementById('summary-cost').innerText = `฿${grandTotalCost.toLocaleString('th-TH')}`;
+
+            } catch (error) {
+                console.error("Error generating stock report:", error);
+                document.getElementById('stock-table-body').innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500">❌ เกิดข้อผิดพลาดในการดึงข้อมูล</td></tr>`;
+            }
+        }
+
+        loadStockReport();
+    </script>
+</body>
+</html>
