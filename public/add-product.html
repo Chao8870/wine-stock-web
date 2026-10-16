@@ -60,7 +60,10 @@
                         <input type="number" id="bottle-size" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" value="750">
                     </div>
                 </div>
-
+                <div>
+                    <label class="block text-sm text-stone-400 mb-1">ราคาต้นทุน (บาท)</label>
+                    <input type="number" id="cost_price" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-stone-200 focus:outline-none focus:border-purple-500">
+                </div>
                 <div>
                     <label class="block text-xs text-stone-400 mb-1">ราคาขาย (บาท)</label>
                     <input type="number" id="price" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="0">
@@ -135,6 +138,7 @@
                 type: document.getElementById('type').value,
                 country: document.getElementById('country').value,
                 bottle_size: parseInt(document.getElementById('bottle-size').value),
+                cost_price: document.getElementById('cost_price').value, // 💡 เพิ่มบรรทัดนี้
                 price: parseFloat(document.getElementById('price').value),
                 user: localStorage.getItem('userName') // ส่งชื่อคนทำรายการไปด้วย
             };
