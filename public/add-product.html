@@ -51,10 +51,29 @@
                         <label class="block text-xs text-stone-400 mb-1">ประเภท</label>
                         <input type="text" id="type" readonly class="w-full bg-stone-800 border border-stone-700 rounded-lg p-3 text-sm text-stone-300 font-semibold cursor-not-allowed focus:outline-none" value="">
                     </div>
-                    <div>
-                        <label class="block text-xs text-stone-400 mb-1">ประเทศ</label>
-                        <input type="text" id="country" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" placeholder="เช่น France">
-                    </div>
+                    <!-- ช่องเลือกประเทศ -->
+<div>
+    <label class="block text-sm text-stone-400 mb-1">ประเทศผลิต (Country)</label>
+    <select id="country" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-stone-200 focus:outline-none focus:border-purple-500">
+        <option value="">-- เลือกประเทศ --</option>
+    </select>
+</div>
+
+<!-- ช่องเลือกเขตผลิต -->
+<div>
+    <label class="block text-sm text-stone-400 mb-1">เขตผลิต (Region)</label>
+    <select id="region" disabled class="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-stone-200 disabled:opacity-50 focus:outline-none focus:border-purple-500">
+        <option value="">-- กรุณาเลือกประเทศก่อน --</option>
+    </select>
+</div>
+
+<!-- ช่องเลือก Sub Region -->
+<div>
+    <label class="block text-sm text-stone-400 mb-1">Sub Region</label>
+    <select id="sub_region" disabled class="w-full bg-stone-900 border border-stone-700 rounded-lg p-2 text-stone-200 disabled:opacity-50 focus:outline-none focus:border-purple-500">
+        <option value="">-- กรุณาเลือกเขตผลิตก่อน --</option>
+    </select>
+</div>
                     <div>
                         <label class="block text-xs text-stone-400 mb-1">ขนาด (ml)</label>
                         <input type="number" id="bottle-size" required class="w-full bg-stone-900 border border-stone-700 rounded-lg p-3 text-sm text-stone-100 focus:outline-none focus:border-amber-500" value="750">
@@ -166,5 +185,87 @@
             }
         }
     </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+        const countrySelect = document.getElementById('country');
+        const regionSelect = document.getElementById('region');
+        const subRegionSelect = document.getElementById('sub_region');
+
+        // 1. โหลดรายชื่อ "ประเทศ" ทันทีที่เปิดหน้านี้
+        try {
+            const res = await fetch('/api/locations/countries');
+            const countries = await res.json();
+            countries.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c;
+                countrySelect.appendChild(opt);
+            });
+        } catch (err) { 
+            console.error('ไม่สามารถโหลดข้อมูลประเทศได้', err); 
+        }
+
+        // 2. เมื่อผู้ใช้เลือก "ประเทศ" -> ให้ดึงข้อมูล "Region"
+        countrySelect.addEventListener('change', async (e) => {
+            const country = e.target.value;
+            
+            // รีเซ็ตช่อง Region และ Sub Region
+            regionSelect.innerHTML = '<option value="">-- เลือกเขตผลิต --</option>';
+            subRegionSelect.innerHTML = '<option value="">-- กรุณาเลือกเขตผลิตก่อน --</option>';
+            
+            if (!country) {
+                regionSelect.disabled = true;
+                subRegionSelect.disabled = true;
+                return;
+            }
+            
+            // ปลดล็อกช่อง Region
+            regionSelect.disabled = false;
+            subRegionSelect.disabled = true;
+
+            // ยิง API ไปดึง Region ตามประเทศที่เลือก
+            const res = await fetch(`/api/locations/regions/${country}`);
+            const regions = await res.json();
+            regions.forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r;
+                opt.textContent = r;
+                regionSelect.appendChild(opt);
+            });
+        });
+
+        // 3. เมื่อผู้ใช้เลือก "Region" -> ให้ดึงข้อมูล "Sub Region"
+        regionSelect.addEventListener('change', async (e) => {
+            const country = countrySelect.value;
+            const region = e.target.value;
+            
+            // รีเซ็ตช่อง Sub Region
+            subRegionSelect.innerHTML = '<option value="">-- เลือก Sub Region --</option>';
+            
+            if (!region) {
+                subRegionSelect.disabled = true;
+                return;
+            }
+
+            // ยิง API ไปดึง Sub Region
+            const res = await fetch(`/api/locations/subregions/${country}/${region}`);
+            const subRegions = await res.json();
+            
+            if (subRegions.length > 0) {
+                subRegionSelect.disabled = false;
+                subRegions.forEach(sr => {
+                    const opt = document.createElement('option');
+                    opt.value = sr;
+                    opt.textContent = sr;
+                    subRegionSelect.appendChild(opt);
+                });
+            } else {
+                // ถ้าเขตนั้นไม่มี Sub Region ให้ล็อกช่องไว้
+                subRegionSelect.innerHTML = '<option value="">-- ไม่มี Sub Region --</option>';
+                subRegionSelect.disabled = true; 
+            }
+        });
+    });
+</script>
 </body>
 </html>
