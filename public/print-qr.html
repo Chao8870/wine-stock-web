@@ -13,16 +13,27 @@
         
         /* ตั้งค่า CSS เฉพาะสำหรับการสั่งพิมพ์ (Print) */
         @media print {
-            @page { margin: 10mm; } /* ขอบกระดาษตอนพิมพ์ */
-            body { background-color: white !important; color: black !important; }
-            .no-print { display: none !important; } /* ซ่อนเมนูและปุ่มตอนพิมพ์ */
+            @page { margin: 3mm; } /* 💡 1. ลดขอบกระดาษซ้าย-ขวาให้ชิดขอบที่สุด */
+            body { 
+                background-color: white !important; 
+                color: black !important; 
+                padding: 0 !important; /* ลบระยะขอบของหน้าจอออกตอนพิมพ์ */
+            }
+            .no-print { display: none !important; } 
             
             /* จัด Layout ให้เป็น Grid สำหรับแผ่นสติ๊กเกอร์ */
             .print-grid { 
                 display: grid !important; 
-                grid-template-columns: repeat(4, 1fr) !important; /* พิมพ์ 4 ดวงต่อแถว */
-                gap: 15px !important; 
+                grid-template-columns: repeat(7, 1fr) !important; /* 💡 2. เพิ่มจำนวนดวงเป็น 7-8 ดวงต่อแถว (แก้ตัวเลขได้ตามต้องการ) */
+                gap: 3px !important; /* 💡 3. ลดระยะห่างซ้าย-ขวา ระหว่างดวงสติ๊กเกอร์ให้เหลือแค่ 3px */
             }
+            .qr-card { 
+                border: 1px dashed #ccc !important; 
+                page-break-inside: avoid; 
+                break-inside: avoid;
+                width: 100% !important; /* บังคับให้ขนาดพอดีกับช่อง */
+            }
+        }
             .qr-card { 
                 border: 1px dashed #ccc !important; 
                 page-break-inside: avoid; /* ป้องกันการโดนตัดครึ่งหน้า */
