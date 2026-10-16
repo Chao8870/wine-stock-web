@@ -289,12 +289,15 @@ app.get('/api/logs', async (req, res) => {
 
 // เพิ่มไวน์ใหม่
 app.post('/api/wines', async (req, res) => {
-    const { id, barcode, name, type, country, bottle_size, price, user } = req.body;
+    // 💡 เพิ่ม cost_price เข้ามาในวงเล็บ
+    const { id, barcode, name, type, country, bottle_size, cost_price, price, user } = req.body; 
     
     const newWine = { 
         id, barcode, name, vintage: '', type,        
         country, region: '', bottle_size: bottle_size || 750, 
-        cost_price: 0, price, qty_front: 0, qty_back: 0, qty_home: 0 
+        cost_price: cost_price || 0, // 💡 เปลี่ยนจาก 0 เป็นรับค่าจากหน้าเว็บ
+        price: price || 0, 
+        qty_front: 0, qty_back: 0, qty_home: 0 
     };
     
     try {
