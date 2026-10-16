@@ -37,6 +37,25 @@ const wineSchema = new mongoose.Schema({
     qty_home: { type: Number, default: 0 }
 });
 const Wine = mongoose.model('Wine', wineSchema);
+// 1. โครงสร้าง Database ของพื้นที่ (Country -> Region -> SubRegion)
+const locationSchema = new mongoose.Schema({
+    country: { type: String, required: true },
+    region: { type: String, required: true },
+    sub_region: { type: String, default: "" }
+});
+const Location = mongoose.model('Location', locationSchema);
+
+// 2. อัปเดตโครงสร้างไวน์ให้รองรับ Sub Region
+// (ให้ไปเพิ่มบรรทัด sub_region: String ใน wineSchema เดิมของคุณ)
+/* 
+const wineSchema = new mongoose.Schema({
+    ... ข้อมูลเดิม ...
+    country: String,
+    region: String,
+    sub_region: String, // 💡 เพิ่มบรรทัดนี้เข้าไป
+    ...
+});
+*/
 
 const logSchema = new mongoose.Schema({
     timestamp: String,
@@ -340,7 +359,87 @@ app.patch('/api/wines/:id/qty', async (req, res) => {
         res.status(500).json({ error: "เกิดข้อผิดพลาดในการอัปเดตสต็อก" });
     }
 });
+// ชุดข้อมูลสกัดจากไฟล์ Excel ไวน์แดงและไวน์ขาวของคุณ
+const initialLocations = [
+  // ฝรั่งเศส
+  { country: "France", region: "Bordeaux", sub_region: "Pomerol" },
+  { country: "France", region: "Bordeaux", sub_region: "Margaux" },
+  { country: "France", region: "Bordeaux", sub_region: "Pauillac" },
+  { country: "France", region: "Bordeaux", sub_region: "Saint-Estèphe" },
+  { country: "France", region: "Bordeaux", sub_region: "Saint-Julien" },
+  { country: "France", region: "Bordeaux", sub_region: "Haut-Médoc" },
+  { country: "France", region: "Bordeaux", sub_region: "Saint-Émilion" },
+  { country: "France", region: "Burgundy", sub_region: "Gevrey-Chambertin" },
+  { country: "France", region: "Burgundy", sub_region: "Nuits-Saint-Georges" },
+  { country: "France", region: "Burgundy", sub_region: "Volnay" },
+  { country: "France", region: "Rhône", sub_region: "Hermitage" },
+  { country: "France", region: "Alsace", sub_region: "" },
+  { country: "France", region: "Champagne", sub_region: "" },
+  // อิตาลี
+  { country: "Italy", region: "Tuscany", sub_region: "Bolgheri" },
+  { country: "Italy", region: "Tuscany", sub_region: "Montalcino" },
+  { country: "Italy", region: "Tuscany", sub_region: "Chianti Classico" },
+  { country: "Italy", region: "Piedmont", sub_region: "Barolo" },
+  { country: "Italy", region: "Piedmont", sub_region: "Barbaresco" },
+  { country: "Italy", region: "Veneto", sub_region: "Valpolicella" },
+  // อเมริกา
+  { country: "USA", region: "California", sub_region: "Napa Valley" },
+  { country: "USA", region: "Washington", sub_region: "Columbia Valley" },
+  // ชิลี
+  { country: "Chile", region: "Maipo Valley", sub_region: "Puente Alto" },
+  // ออสเตรเลีย / สเปน / อาร์เจนติน่า / นิวซีแลนด์
+  { country: "Australia", region: "South Australia", sub_region: "" },
+  { country: "Spain", region: "Castilla y León", sub_region: "Ribera del Duero" },
+  { country: "Spain", region: "La Rioja", sub_region: "Rioja" },
+  { country: "Argentina", region: "Mendoza", sub_region: "Gualtallary" },
+  { country: "New Zealand", region: "Marlborough", sub_region: "" }
+];
 
+async function seedLocations() {
+    try {
+        const count = await Location.countDocuments();
+        if (count === 0) {
+            await Location.insertMany(initialLocations);
+            console.log('🌍 เพิ่มข้อมูล Master Data ประเทศและเขตผลิตลงฐานข้อมูลสำเร็จ!');
+        }
+    } catch (err) {
+        console.error("เกิดข้อผิดพลาดในการเติมข้อมูลพื้นที่:", err);
+    }
+}
+seedLocations();
+// ดึงรายชื่อประเทศทั้งหมด (ไม่ซ้ำกัน)
+app.get('/api/locations/countries', async (req, res) => {
+    try {
+        const countries = await Location.distinct('country');
+        res.json(countries.sort());
+    } catch (err) {
+        res.status(500).json({ error: "ล้มเหลว" });
+    }
+});
+
+// ดึงรายชื่อ Region โดยอิงจากประเทศที่เลือก
+app.get('/api/locations/regions/:country', async (req, res) => {
+    try {
+        const regions = await Location.distinct('region', { country: req.params.country });
+        res.json(regions.sort());
+    } catch (err) {
+        res.status(500).json({ error: "ล้มเหลว" });
+    }
+});
+
+// ดึงรายชื่อ Sub Region โดยอิงจากประเทศและ Region
+app.get('/api/locations/subregions/:country/:region', async (req, res) => {
+    try {
+        const subRegions = await Location.distinct('sub_region', { 
+            country: req.params.country, 
+            region: req.params.region,
+            sub_region: { $ne: "" } // ไม่เอาค่าว่าง
+        });
+        res.json(subRegions.sort());
+    } catch (err) {
+        res.status(500).json({ error: "ล้มเหลว" });
+    }
+});
 app.listen(PORT, () => {
     console.log(`🚀 Server is running on port ${PORT}`);
 });
