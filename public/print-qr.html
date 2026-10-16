@@ -85,8 +85,7 @@
                 infoDiv.className = 'w-full';
                 infoDiv.innerHTML = `
                     <div class="font-bold text-sm text-stone-900">${wine.id}</div>
-                    <div class="text-[10px] text-stone-500 truncate w-full" title="${wine.name}">${wine.name}</div>
-                    <div class="text-[10px] text-stone-400 mt-1">${wine.barcode}</div>
+                    <div class="text-[10px] text-stone-400 leading-none">${wine.barcode}</div>
                 `;
 
                 card.appendChild(qrDiv);
