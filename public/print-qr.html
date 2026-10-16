@@ -82,25 +82,43 @@
             container.innerHTML = ''; // ล้างข้อมูลเก่าก่อน
 
             dataToRender.forEach(wine => {
-                // สร้างการ์ดกรอบ QR Code
                 const card = document.createElement('div');
-                // ใช้พื้นหลังขาวเพื่อให้ QR Code อ่านง่ายเสมอแม้ในโหมดมืด
-                card.className = 'qr-card bg-white text-black border border-stone-300 rounded-lg p-1 flex flex-col items-center justify-center text-center';
+                // 💡 1. เปลี่ยนเป็น flex-row เพื่อให้จัดเรียงซ้าย-ขวา และกำหนดความสูงให้พอดี
+                card.className = 'qr-card bg-white text-black border border-stone-300 rounded-lg p-1 flex flex-row items-center justify-between overflow-hidden h-[70px]';
 
-                // กล่องสำหรับใส่รูป QR
-                const qrDiv = document.createElement('div');
-                qrDiv.className = 'mb-2 flex justify-center';
+                // 💡 2. กล่องแสดง "ชื่อไวน์" วางแนวตั้งด้านซ้าย
+                const nameDiv = document.createElement('div');
+                // หมุนข้อความ 90 องศา (แนวตั้ง) อ่านจากล่างขึ้นบน
+                nameDiv.className = 'text-[9px] text-stone-600 font-medium whitespace-nowrap -rotate-90 origin-center truncate w-[60px] text-center';
+                // ตัดชื่อให้สั้นลงถ้าชื่อยาวเกินไป
+                const shortName = wine.name.length > 25 ? wine.name.substring(0, 25) + '...' : wine.name;
+                nameDiv.textContent = shortName;
                 
-                // ข้อมูลใต้ QR Code
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'w-full';
-                infoDiv.innerHTML = `
-                    <div class="font-bold text-sm text-stone-900">${wine.id}</div>
-                    <div class="text-[10px] text-stone-400 leading-none">${wine.barcode}</div>
-                `;
+                // 💡 3. กล่องแสดงรหัส, บาร์โค้ด และ QR Code วางด้านขวา
+                const rightDiv = document.createElement('div');
+                rightDiv.className = 'flex flex-col items-center justify-center w-[60px]';
+                
+                // รหัสสินค้า
+                const idDiv = document.createElement('div');
+                idDiv.className = 'font-bold text-[10px] text-stone-900 leading-none mb-0.5';
+                idDiv.textContent = wine.id;
+                
+                // กล่องใส่รูป QR
+                const qrDiv = document.createElement('div');
+                qrDiv.className = 'flex justify-center';
+                
+                // รหัสบาร์โค้ด
+                const barcodeDiv = document.createElement('div');
+                barcodeDiv.className = 'text-[8px] text-stone-500 leading-none mt-0.5';
+                barcodeDiv.textContent = wine.barcode;
 
-                card.appendChild(qrDiv);
-                card.appendChild(infoDiv);
+                // ประกอบร่าง
+                rightDiv.appendChild(idDiv);
+                rightDiv.appendChild(qrDiv);
+                rightDiv.appendChild(barcodeDiv);
+
+                card.appendChild(nameDiv);
+                card.appendChild(rightDiv);
                 container.appendChild(card);
 
                 // สร้างรูป QR Code ฝังลงใน qrDiv
