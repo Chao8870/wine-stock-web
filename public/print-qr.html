@@ -97,8 +97,8 @@
                 // ใช้ Barcode เป็นข้อมูลสแกน (ตรงกับเงื่อนไขใน scan.html)
                 new QRCode(qrDiv, {
                     text: wine.barcode || wine.id, 
-                    width: 120,
-                    height: 120,
+                    width: 60,   // ลดความกว้างลงครึ่งหนึ่ง
+                    height: 60,  // ลดความสูงลงครึ่งหนึ่ง
                     colorDark : "#000000",
                     colorLight : "#ffffff",
                     correctLevel : QRCode.CorrectLevel.M
