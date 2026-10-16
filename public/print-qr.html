@@ -13,20 +13,21 @@
         
         /* ตั้งค่า CSS เฉพาะสำหรับการสั่งพิมพ์ (Print) */
         @media print {
-            @page { margin: 10mm; } /* ขอบกระดาษตอนพิมพ์ */
-            body { background-color: white !important; color: black !important; }
+            @page { margin: 3mm; } /* ลดขอบกระดาษตอนพิมพ์ให้ชิดขอบที่สุด */
+            body { background-color: white !important; color: black !important; padding: 0 !important; }
             .no-print { display: none !important; } /* ซ่อนเมนูและปุ่มตอนพิมพ์ */
             
             /* จัด Layout ให้เป็น Grid สำหรับแผ่นสติ๊กเกอร์ */
             .print-grid { 
                 display: grid !important; 
-                grid-template-columns: repeat(4, 1fr) !important; /* พิมพ์ 4 ดวงต่อแถว */
-                gap: 15px !important; 
+                grid-template-columns: repeat(7, 1fr) !important; /* พิมพ์ 7 ดวงต่อแถว */
+                gap: 3px !important; /* ลดช่องว่างซ้ายขวาระหว่างดวง */
             }
             .qr-card { 
                 border: 1px dashed #ccc !important; 
                 page-break-inside: avoid; /* ป้องกันการโดนตัดครึ่งหน้า */
                 break-inside: avoid;
+                width: 100% !important;
             }
         }
     </style>
@@ -71,22 +72,25 @@
             container.innerHTML = ''; // ล้างข้อมูลเก่าก่อน
 
             dataToRender.forEach(wine => {
+                // ข้ามถ้ารายการไม่มีรหัส เพื่อป้องกัน Error ตอนสร้างรูป
+                const qrText = wine.barcode || wine.id;
+                if (!qrText) return;
+
                 // สร้างการ์ดกรอบ QR Code
                 const card = document.createElement('div');
-                // ใช้พื้นหลังขาวเพื่อให้ QR Code อ่านง่ายเสมอแม้ในโหมดมืด
-                card.className = 'qr-card bg-white text-black border border-stone-300 rounded-xl p-3 flex flex-col items-center justify-center text-center';
+                // เปลี่ยนเป็น p-1 เพื่อลดระยะขอบด้านในให้สติ๊กเกอร์เล็กกะทัดรัด
+                card.className = 'qr-card bg-white text-black border border-stone-300 rounded-lg p-1 flex flex-col items-center justify-center text-center overflow-hidden';
 
                 // กล่องสำหรับใส่รูป QR
                 const qrDiv = document.createElement('div');
-                qrDiv.className = 'mb-2 flex justify-center';
+                qrDiv.className = 'mb-1 flex justify-center';
                 
-                // ข้อมูลใต้ QR Code
+                // ข้อมูลใต้ QR Code (ไม่มีบรรทัดชื่อไวน์แล้ว)
                 const infoDiv = document.createElement('div');
                 infoDiv.className = 'w-full';
                 infoDiv.innerHTML = `
-                    <div class="font-bold text-sm text-stone-900">${wine.id}</div>
-                    <div class="text-[10px] text-stone-500 truncate w-full" title="${wine.name}">${wine.name}</div>
-                    <div class="text-[10px] text-stone-400 mt-1">${wine.barcode}</div>
+                    <div class="font-bold text-[11px] text-stone-900 leading-none mb-1">${wine.id || '-'}</div>
+                    <div class="text-[9px] text-stone-500 leading-none">${wine.barcode || '-'}</div>
                 `;
 
                 card.appendChild(qrDiv);
@@ -94,15 +98,18 @@
                 container.appendChild(card);
 
                 // สร้างรูป QR Code ฝังลงใน qrDiv
-                // ใช้ Barcode เป็นข้อมูลสแกน (ตรงกับเงื่อนไขใน scan.html)
-                new QRCode(qrDiv, {
-                    text: wine.barcode || wine.id, 
-                    width: 120,
-                    height: 120,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.M
-                });
+                try {
+                    new QRCode(qrDiv, {
+                        text: qrText, 
+                        width: 60,   // ลดขนาดความกว้างลงครึ่งนึง (เหลือพื้นที่ 1/4)
+                        height: 60,  // ลดขนาดความสูงลงครึ่งนึง (เหลือพื้นที่ 1/4)
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.M
+                    });
+                } catch(e) {
+                    console.error('QR Generate Error:', e);
+                }
             });
         }
 
@@ -110,9 +117,9 @@
         function filterQR() {
             const kw = document.getElementById('search-input').value.toLowerCase();
             const filtered = wines.filter(w => 
-                w.barcode.toLowerCase().includes(kw) || 
-                w.id.toLowerCase().includes(kw) || 
-                w.name.toLowerCase().includes(kw)
+                (w.barcode && w.barcode.toLowerCase().includes(kw)) || 
+                (w.id && w.id.toLowerCase().includes(kw)) || 
+                (w.name && w.name.toLowerCase().includes(kw))
             );
             renderQRCodes(filtered);
         }
