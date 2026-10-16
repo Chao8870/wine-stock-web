@@ -83,22 +83,20 @@
 
             dataToRender.forEach(wine => {
                 const card = document.createElement('div');
-                // ใช้ flex-col เหมือนเดิม แต่อาจจะขยายความกว้างหน่อยเพื่อให้มีพื้นที่วางชื่อแนวตั้งด้านข้าง
-                card.className = 'qr-card bg-white text-black border border-stone-300 rounded-lg p-2 flex flex-row items-center justify-between text-center relative overflow-hidden h-[95px]';
+                // ใช้กรอบขนาดเล็กสุด (p-1) และตั้งค่า relative เพื่อให้ชื่อแปะติดขอบซ้ายได้
+                card.className = 'qr-card bg-white text-black border border-stone-300 rounded-lg p-1 flex flex-col items-center justify-center text-center relative overflow-hidden';
 
-                // 💡 1. ส่วนชื่อไวน์ วางแนวตั้งชิดซ้าย (ใช้ absolute)
+                // 💡 1. ส่วนชื่อไวน์ วางแนวตั้งชิดซ้าย (กำหนด top-1 bottom-1 เพื่อให้พอดีกับความสูงสติ๊กเกอร์)
                 const nameDiv = document.createElement('div');
-                // หมุนข้อความแนวตั้ง (writing-mode)
-                nameDiv.className = 'text-[9px] text-stone-600 font-medium absolute left-1 top-0 bottom-0 flex items-center justify-center';
+                nameDiv.className = 'absolute left-0.5 top-1 bottom-1 flex items-center justify-center text-[7px] text-stone-600 font-medium overflow-hidden';
                 nameDiv.style.writingMode = 'vertical-rl';
                 nameDiv.style.transform = 'scale(-1)'; // กลับหัวให้อ่านจากล่างขึ้นบน
-                // ตัดชื่อให้สั้นลง
-                const shortName = wine.name.length > 25 ? wine.name.substring(0, 25) + '...' : wine.name;
-                nameDiv.textContent = shortName;
+                nameDiv.textContent = wine.name; // ใส่ชื่อลงไป จะถูกจำกัดให้พอดีกรอบอัตโนมัติ
 
-                // 💡 2. ส่วนข้อมูลหลัก (QR, ID, Barcode) วางตรงกลาง
+                // 💡 2. ส่วนข้อมูลหลัก (QR, ID, Barcode) 
+                // ใส่ ml-3 (Margin Left) เพื่อดันข้อมูลหลักให้หนีชื่อแนวตั้งนิดหน่อย
                 const mainInfoDiv = document.createElement('div');
-                mainInfoDiv.className = 'flex flex-col items-center justify-center w-full pl-4'; // pl-4 เพื่อเว้นที่ให้ชื่อแนวตั้ง
+                mainInfoDiv.className = 'flex flex-col items-center justify-center w-full ml-3'; 
 
                 // กล่องสำหรับใส่รูป QR
                 const qrDiv = document.createElement('div');
@@ -121,15 +119,9 @@
                 card.appendChild(mainInfoDiv);
                 container.appendChild(card);
                 
-                // ฟังก์ชันสร้าง QR Code (ขนาด 60x60 เหมือนเดิม)
+                // สร้างรูป QR Code ฝังลงใน qrDiv (ขนาด 60x60 เล็กประหยัดพื้นที่)
                 new QRCode(qrDiv, {
-                    text: wine.barcode || wine.id, 
-                    width: 60,
-                    height: 60,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.M
-                });
+                    text: wine.barcode || wine.id
 
                 // สร้างรูป QR Code ฝังลงใน qrDiv
                 // ใช้ Barcode เป็นข้อมูลสแกน (ตรงกับเงื่อนไขใน scan.html)
