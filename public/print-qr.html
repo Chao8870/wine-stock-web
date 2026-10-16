@@ -76,6 +76,10 @@
             container.innerHTML = ''; 
 
             dataToRender.forEach(wine => {
+                // ข้ามการสร้าง QR ถ้ารายการนี้ไม่มีรหัสใดๆ เลย
+                const qrText = wine.barcode || wine.id;
+                if (!qrText) return; // 💡 ป้องกัน Error ถ้าข้อมูลว่าง
+
                 const card = document.createElement('div');
                 card.className = 'qr-card bg-white text-black border border-stone-300 rounded-lg p-1 flex flex-col items-center justify-center text-center relative overflow-hidden h-[90px]';
 
@@ -84,7 +88,7 @@
                 nameDiv.className = 'absolute left-0.5 top-1 bottom-1 flex items-center justify-center text-[7px] text-stone-600 font-medium overflow-hidden';
                 nameDiv.style.writingMode = 'vertical-rl';
                 nameDiv.style.transform = 'scale(-1)'; 
-                nameDiv.textContent = wine.name; 
+                nameDiv.textContent = wine.name || 'Unknown'; // เผื่อกรณีไม่มีชื่อ
 
                 // ส่วนข้อมูลหลัก (QR, ID, Barcode) 
                 const mainInfoDiv = document.createElement('div');
@@ -98,8 +102,8 @@
                 const infoDiv = document.createElement('div');
                 infoDiv.className = 'w-full';
                 infoDiv.innerHTML = `
-                    <div class="font-bold text-[10px] text-stone-900 leading-none mb-0.5">${wine.id}</div>
-                    <div class="text-[8px] text-stone-400 leading-none">${wine.barcode}</div>
+                    <div class="font-bold text-[10px] text-stone-900 leading-none mb-0.5">${wine.id || '-'}</div>
+                    <div class="text-[8px] text-stone-400 leading-none">${wine.barcode || '-'}</div>
                 `;
 
                 // ประกอบข้อมูล
@@ -109,6 +113,23 @@
                 card.appendChild(nameDiv);
                 card.appendChild(mainInfoDiv);
                 container.appendChild(card);
+                
+                // 💡 ป้องกัน Error ตอนสร้าง QR Code
+                try {
+                    new QRCode(qrDiv, {
+                        text: qrText, 
+                        width: 55,   
+                        height: 55,  
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.M
+                    });
+                } catch (e) {
+                    console.error("สร้าง QR Code ไม่สำเร็จสำหรับ:", qrText, e);
+                    qrDiv.innerHTML = '<span class="text-xs text-red-500">Error</span>';
+                }
+            });
+        }
                 
                 // สร้างรูป QR Code 
                 new QRCode(qrDiv, {
