@@ -15,7 +15,7 @@
         @media print {
             @page { margin: 3mm; } /* ลดขอบกระดาษตอนพิมพ์ให้ชิดขอบที่สุด */
             body { background-color: white !important; color: black !important; padding: 0 !important; }
-            .no-print { display: none !important; } /* ซ่อนเมนูและปุ่มตอนพิมพ์ */
+            .no-print { display: none !important; } 
             
             /* จัด Layout ให้เป็น Grid สำหรับแผ่นสติ๊กเกอร์ */
             .print-grid { 
@@ -25,7 +25,7 @@
             }
             .qr-card { 
                 border: 1px dashed #ccc !important; 
-                page-break-inside: avoid; /* ป้องกันการโดนตัดครึ่งหน้า */
+                page-break-inside: avoid; 
                 break-inside: avoid;
                 width: 100% !important;
             }
@@ -34,7 +34,6 @@
 </head>
 <body class="bg-stone-900 text-stone-100 min-h-screen p-6">
 
-    <!-- ส่วนหัวและปุ่มควบคุม (จะถูกซ่อนตอนสั่งพิมพ์ด้วยคลาส no-print) -->
     <div class="no-print max-w-6xl mx-auto mb-6 bg-stone-950 p-4 rounded-xl border border-stone-800 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div class="flex items-center space-x-4">
             <a href="/menu.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-4 py-2 rounded-lg text-sm transition">⬅ ย้อนกลับเมนู</a>
@@ -49,7 +48,7 @@
         </div>
     </div>
 
-    <!-- พื้นที่แสดง QR Code (จะถูกพิมพ์) -->
+    <!-- พื้นที่แสดง QR Code -->
     <div id="qr-container" class="max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 print-grid">
         <!-- QR Code จะถูกโหลดมาใส่ตรงนี้ -->
     </div>
@@ -69,40 +68,53 @@
 
         function renderQRCodes(dataToRender) {
             const container = document.getElementById('qr-container');
-            container.innerHTML = ''; // ล้างข้อมูลเก่าก่อน
+            container.innerHTML = ''; 
 
             dataToRender.forEach(wine => {
-                // ข้ามถ้ารายการไม่มีรหัส เพื่อป้องกัน Error ตอนสร้างรูป
                 const qrText = wine.barcode || wine.id;
                 if (!qrText) return;
 
-                // สร้างการ์ดกรอบ QR Code
                 const card = document.createElement('div');
-                // เปลี่ยนเป็น p-1 เพื่อลดระยะขอบด้านในให้สติ๊กเกอร์เล็กกะทัดรัด
-                card.className = 'qr-card bg-white text-black border border-stone-300 rounded-lg p-1 flex flex-col items-center justify-center text-center overflow-hidden';
+                // 💡 เพิ่ม relative และกำหนดความสูง h-[90px] เพื่อล็อกขนาดให้เท่าเดิมเป๊ะๆ
+                card.className = 'qr-card bg-white text-black border border-stone-300 rounded-lg p-1 flex flex-col items-center justify-center text-center relative overflow-hidden h-[90px]';
+
+                // 💡 ส่วนชื่อไวน์ (วางแบบ absolute แปะติดขอบซ้าย จะไม่ดันกรอบให้ขยาย)
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'absolute left-0.5 top-1 bottom-1 flex items-center justify-center text-[7.5px] text-stone-600 font-medium overflow-hidden';
+                nameDiv.style.writingMode = 'vertical-rl';
+                nameDiv.style.transform = 'scale(-1)'; // อ่านจากล่างขึ้นบน
+                nameDiv.textContent = wine.name || 'Unknown'; 
+
+                // 💡 ส่วนเนื้อหาหลัก ดันไปทางขวานิดนึง (pl-3) เพื่อเว้นที่ให้ชื่อ
+                const mainInfoDiv = document.createElement('div');
+                mainInfoDiv.className = 'flex flex-col items-center justify-center w-full pl-3';
 
                 // กล่องสำหรับใส่รูป QR
                 const qrDiv = document.createElement('div');
                 qrDiv.className = 'mb-1 flex justify-center';
                 
-                // ข้อมูลใต้ QR Code (ไม่มีบรรทัดชื่อไวน์แล้ว)
+                // ข้อมูลใต้ QR Code 
                 const infoDiv = document.createElement('div');
                 infoDiv.className = 'w-full';
                 infoDiv.innerHTML = `
-                    <div class="font-bold text-[11px] text-stone-900 leading-none mb-1">${wine.id || '-'}</div>
+                    <div class="font-bold text-[11px] text-stone-900 leading-none mb-0.5">${wine.id || '-'}</div>
                     <div class="text-[9px] text-stone-500 leading-none">${wine.barcode || '-'}</div>
                 `;
 
-                card.appendChild(qrDiv);
-                card.appendChild(infoDiv);
+                // ประกอบข้อมูล
+                mainInfoDiv.appendChild(qrDiv);
+                mainInfoDiv.appendChild(infoDiv);
+
+                card.appendChild(nameDiv);
+                card.appendChild(mainInfoDiv);
                 container.appendChild(card);
 
-                // สร้างรูป QR Code ฝังลงใน qrDiv
+                // สร้างรูป QR Code (ขนาด 60x60 เท่าเดิม 1/4)
                 try {
                     new QRCode(qrDiv, {
                         text: qrText, 
-                        width: 60,   // ลดขนาดความกว้างลงครึ่งนึง (เหลือพื้นที่ 1/4)
-                        height: 60,  // ลดขนาดความสูงลงครึ่งนึง (เหลือพื้นที่ 1/4)
+                        width: 60,   
+                        height: 60,  
                         colorDark : "#000000",
                         colorLight : "#ffffff",
                         correctLevel : QRCode.CorrectLevel.M
@@ -113,7 +125,6 @@
             });
         }
 
-        // ฟังก์ชันค้นหาเพื่อให้เลือกพิมพ์เฉพาะรายการที่ต้องการได้ง่ายๆ
         function filterQR() {
             const kw = document.getElementById('search-input').value.toLowerCase();
             const filtered = wines.filter(w => 
@@ -130,29 +141,25 @@
         // ระบบ Auto Logout เมื่อไม่มีการใช้งาน 30 นาที
         // ==========================================
         let inactivityTimer;
-        const TIME_LIMIT = 30 * 60 * 1000; // 30 นาที (หน่วยเป็นมิลลิวินาที)
+        const TIME_LIMIT = 30 * 60 * 1000; 
 
-        // ฟังก์ชันเมื่อหมดเวลา
         function autoLogout() {
             alert("คุณไม่ได้ใช้งานระบบเป็นเวลานาน ระบบจึงออกจากระบบอัตโนมัติเพื่อความปลอดภัย");
-            localStorage.clear(); // ล้างข้อมูลล็อกอิน
-            window.location.href = '/login.html'; // เด้งกลับหน้าล็อกอิน
+            localStorage.clear(); 
+            window.location.href = '/login.html'; 
         }
 
-        // ฟังก์ชันรีเซ็ตเวลาใหม่ทุกครั้งที่มีการขยับ
         function resetTimer() {
             clearTimeout(inactivityTimer);
             inactivityTimer = setTimeout(autoLogout, TIME_LIMIT);
         }
 
-        // ตรวจจับเหตุการณ์ (Events) ต่างๆ ที่แสดงว่าผู้ใช้กำลังใช้งานอยู่
         window.onload = resetTimer;
-        document.onmousemove = resetTimer;    // ขยับเมาส์
-        document.onkeypress = resetTimer;     // พิมพ์คีย์บอร์ด
-        document.ontouchstart = resetTimer;   // แตะหน้าจอ (สำหรับมือถือ/แท็บเล็ต)
-        document.onclick = resetTimer;        // คลิกเมาส์
-        document.onscroll = resetTimer;       // เลื่อนหน้าจอ
-        // ==========================================
+        document.onmousemove = resetTimer;    
+        document.onkeypress = resetTimer;     
+        document.ontouchstart = resetTimer;   
+        document.onclick = resetTimer;        
+        document.onscroll = resetTimer;       
     </script>
 </body>
 </html>
