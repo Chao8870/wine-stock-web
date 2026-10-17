@@ -13,15 +13,15 @@
         
         /* ตั้งค่า CSS เฉพาะสำหรับการสั่งพิมพ์ (Print) */
         @media print {
-            @page { margin: 3mm; } /* ลดขอบกระดาษตอนพิมพ์ให้ชิดขอบที่สุด */
+            @page { margin: 3mm; } 
             body { background-color: white !important; color: black !important; padding: 0 !important; }
             .no-print { display: none !important; } 
             
             /* จัด Layout ให้เป็น Grid สำหรับแผ่นสติ๊กเกอร์ */
             .print-grid { 
                 display: grid !important; 
-                grid-template-columns: repeat(7, 1fr) !important; /* พิมพ์ 7 ดวงต่อแถว */
-                gap: 3px !important; /* ลดช่องว่างซ้ายขวาระหว่างดวง */
+                grid-template-columns: repeat(7, 1fr) !important; 
+                gap: 3px !important; 
             }
             .qr-card { 
                 border: 1px dashed #ccc !important; 
@@ -34,14 +34,22 @@
 </head>
 <body class="bg-stone-900 text-stone-100 min-h-screen p-6">
 
-    <div class="no-print max-w-6xl mx-auto mb-6 bg-stone-950 p-4 rounded-xl border border-stone-800 flex flex-col sm:flex-row justify-between items-center gap-4">
+    <div class="no-print max-w-7xl mx-auto mb-6 bg-stone-950 p-4 rounded-xl border border-stone-800 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div class="flex items-center space-x-4">
-            <a href="/menu.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-4 py-2 rounded-lg text-sm transition">⬅ ย้อนกลับเมนู</a>
-            <h1 class="text-xl font-semibold text-amber-500">🖨️ สร้างและพิมพ์ QR Code</h1>
+            <a href="/menu.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-4 py-2 rounded-lg text-sm transition">⬅ ย้อนกลับ</a>
+            <h1 class="text-xl font-semibold text-amber-500">🖨️ พิมพ์ QR Code</h1>
         </div>
         
-        <div class="flex w-full sm:w-auto items-center space-x-2">
-            <input type="text" id="search-input" onkeyup="filterQR()" placeholder="ค้นหารหัส หรือชื่อไวน์..." class="bg-stone-900 border border-stone-700 text-stone-100 px-4 py-2 rounded-lg text-sm w-full sm:w-64 focus:outline-none focus:border-amber-500">
+        <div class="flex w-full sm:w-auto items-center space-x-2 overflow-x-auto">
+            <!-- ช่องค้นหา -->
+            <input type="text" id="search-input" onkeyup="filterQR()" placeholder="ค้นหารหัส หรือชื่อไวน์..." class="bg-stone-900 border border-stone-700 text-stone-100 px-4 py-2 rounded-lg text-sm w-full sm:w-48 focus:outline-none focus:border-amber-500">
+            
+            <!-- 💡 เพิ่มช่องระบุจำนวนดวง -->
+            <div class="flex items-center bg-stone-900 border border-stone-700 rounded-lg px-3 py-1.5" title="ค้นหาสินค้าให้เจอ 1 รายการก่อน แล้วพิมพ์จำนวนที่ต้องการพิมพ์ซ้ำ">
+                <span class="text-sm text-stone-400 whitespace-nowrap mr-2">จำนวนสำเนา:</span>
+                <input type="number" id="print-qty" value="1" min="1" onchange="filterQR()" onkeyup="filterQR()" class="bg-transparent text-amber-400 font-bold w-12 focus:outline-none text-center">
+            </div>
+
             <button onclick="window.print()" class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2 rounded-lg text-sm font-semibold transition shadow-lg shadow-emerald-500/20 whitespace-nowrap">
                 🖨️ สั่งพิมพ์
             </button>
@@ -70,57 +78,59 @@
             const container = document.getElementById('qr-container');
             container.innerHTML = ''; 
 
+            // 💡 ดึงค่าจำนวนสำเนาที่ต้องการพิมพ์ (ค่าเริ่มต้นคือ 1)
+            const qty = parseInt(document.getElementById('print-qty').value) || 1;
+
             dataToRender.forEach(wine => {
                 const qrText = wine.barcode || wine.id;
                 if (!qrText) return;
 
-                const card = document.createElement('div');
-                // 💡 เพิ่ม relative และกำหนดความสูง h-[90px] เพื่อล็อกขนาดให้เท่าเดิมเป๊ะๆ
-                card.className = 'qr-card bg-white text-black border border-stone-300 rounded-lg p-1 flex flex-col items-center justify-center text-center relative overflow-hidden h-[90px]';
+                // 💡 วนลูปสร้างการ์ดตามจำนวนที่ระบุ (qty)
+                for (let i = 0; i < qty; i++) {
+                    const card = document.createElement('div');
+                    card.className = 'qr-card bg-white text-black border border-stone-300 rounded-lg p-1 flex flex-col items-center justify-center text-center relative overflow-hidden h-[90px]';
 
-                // 💡 ส่วนชื่อไวน์ (วางแบบ absolute แปะติดขอบซ้าย จะไม่ดันกรอบให้ขยาย)
-                const nameDiv = document.createElement('div');
-                nameDiv.className = 'absolute left-0.5 top-1 bottom-1 flex items-center justify-center text-[7.5px] text-stone-600 font-medium overflow-hidden';
-                nameDiv.style.writingMode = 'vertical-rl';
-                nameDiv.style.transform = 'scale(-1)'; // อ่านจากล่างขึ้นบน
-                nameDiv.textContent = wine.name || 'Unknown'; 
+                    // ส่วนชื่อไวน์
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'absolute left-0.5 top-1 bottom-1 flex items-center justify-center text-[7.5px] text-stone-600 font-medium overflow-hidden';
+                    nameDiv.style.writingMode = 'vertical-rl';
+                    nameDiv.style.transform = 'scale(-1)'; 
+                    nameDiv.textContent = wine.name || 'Unknown'; 
 
-                // 💡 ส่วนเนื้อหาหลัก ดันไปทางขวานิดนึง (pl-3) เพื่อเว้นที่ให้ชื่อ
-                const mainInfoDiv = document.createElement('div');
-                mainInfoDiv.className = 'flex flex-col items-center justify-center w-full pl-3';
+                    // ส่วนเนื้อหาหลัก 
+                    const mainInfoDiv = document.createElement('div');
+                    mainInfoDiv.className = 'flex flex-col items-center justify-center w-full pl-3';
 
-                // กล่องสำหรับใส่รูป QR
-                const qrDiv = document.createElement('div');
-                qrDiv.className = 'mb-1 flex justify-center';
-                
-                // ข้อมูลใต้ QR Code 
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'w-full';
-                infoDiv.innerHTML = `
-                    <div class="font-bold text-[11px] text-stone-900 leading-none mb-0.5">${wine.id || '-'}</div>
-                    <div class="text-[9px] text-stone-500 leading-none">${wine.barcode || '-'}</div>
-                `;
+                    const qrDiv = document.createElement('div');
+                    qrDiv.className = 'mb-1 flex justify-center';
+                    
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'w-full';
+                    infoDiv.innerHTML = `
+                        <div class="font-bold text-[11px] text-stone-900 leading-none mb-0.5">${wine.id || '-'}</div>
+                        <div class="text-[9px] text-stone-500 leading-none">${wine.barcode || '-'}</div>
+                    `;
 
-                // ประกอบข้อมูล
-                mainInfoDiv.appendChild(qrDiv);
-                mainInfoDiv.appendChild(infoDiv);
+                    mainInfoDiv.appendChild(qrDiv);
+                    mainInfoDiv.appendChild(infoDiv);
 
-                card.appendChild(nameDiv);
-                card.appendChild(mainInfoDiv);
-                container.appendChild(card);
+                    card.appendChild(nameDiv);
+                    card.appendChild(mainInfoDiv);
+                    container.appendChild(card);
 
-                // สร้างรูป QR Code (ขนาด 60x60 เท่าเดิม 1/4)
-                try {
-                    new QRCode(qrDiv, {
-                        text: qrText, 
-                        width: 60,   
-                        height: 60,  
-                        colorDark : "#000000",
-                        colorLight : "#ffffff",
-                        correctLevel : QRCode.CorrectLevel.M
-                    });
-                } catch(e) {
-                    console.error('QR Generate Error:', e);
+                    // สร้างรูป QR Code 
+                    try {
+                        new QRCode(qrDiv, {
+                            text: qrText, 
+                            width: 60,   
+                            height: 60,  
+                            colorDark : "#000000",
+                            colorLight : "#ffffff",
+                            correctLevel : QRCode.CorrectLevel.M
+                        });
+                    } catch(e) {
+                        console.error('QR Generate Error:', e);
+                    }
                 }
             });
         }
@@ -138,7 +148,7 @@
         fetchWines();
 
         // ==========================================
-        // ระบบ Auto Logout เมื่อไม่มีการใช้งาน 30 นาที
+        // ระบบ Auto Logout
         // ==========================================
         let inactivityTimer;
         const TIME_LIMIT = 30 * 60 * 1000; 
