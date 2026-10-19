@@ -107,59 +107,107 @@
         let allWines = [];
 
         const today = new Date();
-        document.getElementById('print-date').innerText = `ข้อมูล ณ วันที่: ${today.toLocaleDateString('th-TH')} เวลา ${today.toLocaleTimeString('th-TH')}`;
+        const dateElement = document.getElementById('print-date');
+        if (dateElement) {
+            dateElement.innerText = `ข้อมูล ณ วันที่: ${today.toLocaleDateString('th-TH')} เวลา ${today.toLocaleTimeString('th-TH')}`;
+        }
 
         async function fetchWines() {
             try {
                 const res = await fetch('/api/wines');
+                if (!res.ok) throw new Error('Network response was not ok');
                 allWines = await res.json();
                 renderTable();
             } catch (error) {
-                document.getElementById('report-tbody').innerHTML = '<tr><td colspan="16" class="p-8 text-center text-red-500">❌ ไม่สามารถดึงข้อมูลได้</td></tr>';
+                console.error('Error fetching data:', error);
+                document.getElementById('report-tbody').innerHTML = '<tr><td colspan="16" class="p-8 text-center text-red-500 font-bold">❌ ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (โปรดรีเฟรชหน้าเว็บ)</td></tr>';
             }
         }
 
         function renderTable() {
             const tbody = document.getElementById('report-tbody');
-            const kw = document.getElementById('search-input').value.toLowerCase();
-            tbody.innerHTML = '';
+            
+            try {
+                const kw = document.getElementById('search-input').value.toLowerCase();
+                tbody.innerHTML = '';
 
-            let sumFront = 0, sumBack = 0, sumHome = 0, sumAll = 0, sumTotalCost = 0;
-            let index = 1;
+                let sumFront = 0, sumBack = 0, sumHome = 0, sumAll = 0, sumTotalCost = 0;
+                let index = 1;
 
-            const filteredWines = allWines.filter(w => 
-                (w.id && w.id.toLowerCase().includes(kw)) || 
-                (w.name && w.name.toLowerCase().includes(kw)) ||
-                (w.country && w.country.toLowerCase().includes(kw)) ||
-                (w.region && w.region.toLowerCase().includes(kw))
-            );
+                // 💡 ป้องกัน Error โดยการแปลงข้อมูลทุกอย่างให้เป็น String ก่อนค้นหา
+                const filteredWines = allWines.filter(w => 
+                    (w.id && String(w.id).toLowerCase().includes(kw)) || 
+                    (w.name && String(w.name).toLowerCase().includes(kw)) ||
+                    (w.country && String(w.country).toLowerCase().includes(kw)) ||
+                    (w.region && String(w.region).toLowerCase().includes(kw))
+                );
 
-            if (filteredWines.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="16" class="p-8 text-center text-stone-500">ไม่พบรายการสินค้า</td></tr>';
-                document.getElementById('sum-total-cost').innerText = '0.00';
-                return;
-            }
+                if (filteredWines.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="16" class="p-8 text-center text-stone-500">ไม่พบรายการสินค้า</td></tr>';
+                    resetTotals();
+                    return;
+                }
 
-            filteredWines.forEach(wine => {
-                const qF = parseInt(wine.qty_front) || 0;
-                const qB = parseInt(wine.qty_back) || 0;
-                const qH = parseInt(wine.qty_home) || 0;
-                const totalQty = qF + qB + qH;
-                const costPrice = parseFloat(wine.cost_price) || 0;
-                const sellPrice = parseFloat(wine.price) || 0;
-                const totalCost = totalQty * costPrice;
+                filteredWines.forEach(wine => {
+                    const qF = parseInt(wine.qty_front) || 0;
+                    const qB = parseInt(wine.qty_back) || 0;
+                    const qH = parseInt(wine.qty_home) || 0;
+                    const totalQty = qF + qB + qH;
+                    const costPrice = parseFloat(wine.cost_price) || 0;
+                    const sellPrice = parseFloat(wine.price) || 0;
+                    const totalCost = totalQty * costPrice;
 
-                // สะสมยอดรวม
-                sumFront += qF;
-                sumBack += qB;
-                sumHome += qH;
-                sumAll += totalQty;
-                sumTotalCost += totalCost;
+                    // สะสมยอดรวม
+                    sumFront += qF;
+                    sumBack += qB;
+                    sumHome += qH;
+                    sumAll += totalQty;
+                    sumTotalCost += totalCost;
 
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-stone-900/50 transition text-center print:nth-child(even):bg-gray-100';
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-stone-900/50 transition text-center print:nth-child(even):bg-gray-100';
+                    
+                    tr.innerHTML = `
+                        <td class="p-2 text-stone-400 print:text-black">${index++}</td>
+                        <td class="p-2 text-left font-mono text-pink-300 print:text-black">${wine.id || '-'}</td>
+                        <td class="p-2 text-left text-stone-300 print:text-black">${wine.country || '-'}</td>
+                        <td class="p-2 text-left text-stone-300 print:text-black">${wine.region || '-'}</td>
+                        <td class="p-2 text-left text-stone-400 print:text-black">${wine.sub_region || '-'}</td>
+                        <td class="p-2 text-stone-300 print:text-black">${wine.type || '-'}</td>
+                        <td class="p-2 text-left whitespace-normal text-stone-200 print:text-black leading-tight">${wine.name || '-'}</td>
+                        <td class="p-2 text-stone-400 print:text-black">${wine.vintage || '-'}</td>
+                        <td class="p-2 text-stone-400 print:text-black">${wine.bottle_size || 750}</td>
+                        <td class="p-2 text-right text-stone-200 print:text-black">${qF}</td>
+                        <td class="p-2 text-right text-stone-200 print:text-black">${qB}</td>
+                        <td class="p-2 text-right text-stone-200 print:text-black">${qH}</td>
+                        <td class="p-2 text-right font-bold text-pink-400 print:text-black">${totalQty}</td>
+                        <td class="p-2 text-right text-stone-300 print:text-black">${costPrice.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td class="p-2 text-right text-stone-300 print:text-black">${sellPrice.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td class="p-2 text-right font-bold text-emerald-400 print:text-black">${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // อัปเดตยอดรวมด้านล่างสุดของตาราง
+                document.getElementById('sum-front').innerText = sumFront.toLocaleString();
+                document.getElementById('sum-back').innerText = sumBack.toLocaleString();
+                document.getElementById('sum-home').innerText = sumHome.toLocaleString();
+                document.getElementById('sum-all').innerText = sumAll.toLocaleString();
+                document.getElementById('sum-total-cost').innerText = '฿ ' + sumTotalCost.toLocaleString(undefined, {minimumFractionDigits: 2});
                 
-                tr.innerHTML = `
-                    <td class="p-2 text-stone-400 print:text-black">\${index++}</td>
-                    <td class="p-2 text-left font-mono text-pink-300 print:text-black">\${wine.id || '-'}</td>
-                    <td class="p-2 text-left text-stone-300 print:text-
+            } catch (err) {
+                console.error("Render Table Error:", err);
+                tbody.innerHTML = '<tr><td colspan="16" class="p-8 text-center text-red-500 font-bold">⚠️ เกิดข้อผิดพลาดในการประมวลผลข้อมูล</td></tr>';
+            }
+        }
+
+        function resetTotals() {
+            document.getElementById('sum-front').innerText = '0';
+            document.getElementById('sum-back').innerText = '0';
+            document.getElementById('sum-home').innerText = '0';
+            document.getElementById('sum-all').innerText = '0';
+            document.getElementById('sum-total-cost').innerText = '฿ 0.00';
+        }
+
+        fetchWines();
+    </script>
