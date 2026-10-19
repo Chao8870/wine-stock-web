@@ -9,85 +9,94 @@
     <style>
         body { font-family: 'Prompt', sans-serif; }
         
-        /* ตั้งค่าสำหรับการพิมพ์ (Print) */
+        /* ตั้งค่าสำหรับการพิมพ์ (Print) ให้พอดีกับคอลัมน์ที่เยอะขึ้น */
         @media print {
             @page { 
-                size: landscape; /* พิมพ์แนวนอนเพื่อให้พอดีกับตาราง */
-                margin: 10mm; 
+                size: landscape; /* พิมพ์แนวนอน */
+                margin: 5mm; /* ขอบกระดาษแคบสุดเพื่อเพิ่มพื้นที่ */
             }
             body { 
                 background-color: white !important; 
                 color: black !important; 
             }
-            .no-print { display: none !important; } /* ซ่อนปุ่มและเมนูตอนพิมพ์ */
+            .no-print { display: none !important; } 
             
-            /* จัดรูปแบบตารางตอนพิมพ์ให้มีเส้นขอบสีดำชัดเจน (เหมือน Excel) */
+            /* จัดรูปแบบตารางแบบ Excel */
             table { width: 100%; border-collapse: collapse !important; }
             th, td { 
                 border: 1px solid #000 !important; 
-                padding: 4px 6px !important; 
-                font-size: 10px !important; 
+                padding: 3px 4px !important; /* ลดระยะห่างด้านใน */
+                font-size: 8.5px !important; /* ลดขนาดอักษรให้พอดีกับ 16 คอลัมน์ */
                 color: black !important;
+                vertical-align: middle;
             }
-            th { background-color: #f3f4f6 !important; font-weight: bold !important; -webkit-print-color-adjust: exact; }
+            th { background-color: #e5e7eb !important; font-weight: bold !important; text-align: center !important; -webkit-print-color-adjust: exact; }
             
-            /* ซ่อนเงาและสีพื้นหลังที่ไม่จำเป็น */
             .print-container { box-shadow: none !important; border: none !important; margin: 0 !important; padding: 0 !important; max-width: 100% !important;}
         }
     </style>
 </head>
 <body class="bg-stone-900 text-stone-100 min-h-screen p-6">
 
-    <!-- ส่วนหัวและปุ่มควบคุม (ซ่อนตอนพิมพ์) -->
-    <div class="no-print max-w-7xl mx-auto mb-6 bg-stone-950 p-4 rounded-xl border border-stone-800 flex flex-col sm:flex-row justify-between items-center gap-4">
+    <!-- ส่วนหัวและปุ่มควบคุม -->
+    <div class="no-print max-w-[1400px] mx-auto mb-6 bg-stone-950 p-4 rounded-xl border border-stone-800 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div class="flex items-center space-x-4">
             <a href="/menu.html" class="bg-stone-800 hover:bg-stone-700 text-stone-300 px-4 py-2 rounded-lg text-sm transition">⬅ ย้อนกลับเมนู</a>
-            <h1 class="text-xl font-semibold text-pink-500">📊 รายงานยอดคงเหลือสินค้า</h1>
+            <h1 class="text-xl font-semibold text-pink-500">📊 รายงานยอดคงเหลือสินค้า (Full Detail)</h1>
         </div>
         
         <div class="flex items-center space-x-2">
-            <input type="text" id="search-input" onkeyup="renderTable()" placeholder="ค้นหารหัส, ชื่อ, ประเทศ..." class="bg-stone-900 border border-stone-700 text-stone-100 px-4 py-2 rounded-lg text-sm w-64 focus:outline-none focus:border-pink-500">
+            <input type="text" id="search-input" onkeyup="renderTable()" placeholder="ค้นหารหัส, ชื่อ, ประเทศ, Region..." class="bg-stone-900 border border-stone-700 text-stone-100 px-4 py-2 rounded-lg text-sm w-72 focus:outline-none focus:border-pink-500">
             <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg text-sm font-semibold transition shadow-lg whitespace-nowrap flex items-center">
                 🖨️ พิมพ์รายงาน
             </button>
         </div>
     </div>
 
-    <!-- พื้นที่แสดงรายงาน (ส่วนที่จะถูกพิมพ์) -->
-    <div class="print-container max-w-7xl mx-auto bg-stone-950 rounded-xl border border-stone-800 overflow-hidden shadow-2xl p-4">
+    <!-- พื้นที่แสดงรายงาน -->
+    <div class="print-container max-w-[1400px] mx-auto bg-stone-950 rounded-xl border border-stone-800 overflow-hidden shadow-2xl p-4">
         
-        <!-- หัวกระดาษ (แสดงเฉพาะตอนพิมพ์) -->
+        <!-- หัวกระดาษตอนพิมพ์ -->
         <div class="hidden print:block text-center mb-4">
-            <h2 class="text-lg font-bold">รายงานยอดคงเหลือสินค้า (Stock Balance Report)</h2>
-            <p class="text-sm" id="print-date"></p>
+            <h2 class="text-lg font-bold">รายงานยอดคงเหลือสินค้า และมูลค่าสต๊อก (Stock & Valuation Report)</h2>
+            <p class="text-[10px] text-gray-600" id="print-date"></p>
         </div>
 
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse whitespace-nowrap">
                 <thead>
-                    <tr class="bg-stone-900 text-stone-400 text-xs uppercase tracking-wider border-b border-stone-800 text-center">
-                        <th class="p-3 w-12">ลำดับ</th>
-                        <th class="p-3 text-left">รหัสสินค้า</th>
-                        <th class="p-3 text-left">ชื่อไวน์ (Name)</th>
-                        <th class="p-3">ประเภท</th>
-                        <th class="p-3">ประเทศ</th>
-                        <th class="p-3 text-right">หน้าร้าน</th>
-                        <th class="p-3 text-right">คลังหลัง</th>
-                        <th class="p-3 text-right">บ้าน</th>
-                        <th class="p-3 text-right font-bold text-pink-400 print:text-black">รวมทั้งหมด</th>
+                    <tr class="bg-stone-900 text-stone-400 text-[10px] uppercase tracking-wider border-b border-stone-800 text-center">
+                        <th class="p-2">ลำดับ</th>
+                        <th class="p-2 text-left">รหัส</th>
+                        <th class="p-2 text-left">ประเทศ (Country)</th>
+                        <th class="p-2 text-left">เขตผลิต (Region)</th>
+                        <th class="p-2 text-left">Sub Region</th>
+                        <th class="p-2">ประเภท</th>
+                        <th class="p-2 text-left min-w-[200px]">รายการไวน์ (Name)</th>
+                        <th class="p-2">Vintage</th>
+                        <th class="p-2">ขนาด (ml)</th>
+                        <th class="p-2 text-right">หน้าร้าน</th>
+                        <th class="p-2 text-right">หลังร้าน</th>
+                        <th class="p-2 text-right">บ้าน</th>
+                        <th class="p-2 text-right text-pink-400 print:text-black">ยอดรวม</th>
+                        <th class="p-2 text-right">ทุน/ขวด</th>
+                        <th class="p-2 text-right">ขาย/ขวด</th>
+                        <th class="p-2 text-right text-emerald-400 print:text-black">มูลค่าต้นทุนรวม</th>
                     </tr>
                 </thead>
-                <tbody id="report-tbody" class="divide-y divide-stone-800 text-sm">
-                    <tr><td colspan="9" class="p-8 text-center text-stone-500">กำลังโหลดข้อมูล...</td></tr>
+                <tbody id="report-tbody" class="divide-y divide-stone-800 text-xs">
+                    <tr><td colspan="16" class="p-8 text-center text-stone-500">กำลังโหลดข้อมูล...</td></tr>
                 </tbody>
                 <!-- แถบสรุปยอดรวมด้านล่าง -->
-                <tfoot class="bg-stone-900 font-bold border-t-2 border-stone-700">
-                    <tr class="text-center text-pink-400 print:text-black text-sm">
-                        <td colspan="5" class="p-3 text-right">ยอดรวมสุทธิ (Total):</td>
-                        <td class="p-3 text-right" id="sum-front">0</td>
-                        <td class="p-3 text-right" id="sum-back">0</td>
-                        <td class="p-3 text-right" id="sum-home">0</td>
-                        <td class="p-3 text-right text-base" id="sum-all">0</td>
+                <tfoot class="bg-stone-900 font-bold border-t-2 border-stone-700 text-xs">
+                    <tr class="text-right text-pink-400 print:text-black">
+                        <td colspan="9" class="p-3 text-right">ยอดรวมสุทธิ (Total):</td>
+                        <td class="p-3" id="sum-front">0</td>
+                        <td class="p-3" id="sum-back">0</td>
+                        <td class="p-3" id="sum-home">0</td>
+                        <td class="p-3 text-sm" id="sum-all">0</td>
+                        <td colspan="2" class="p-3">มูลค่าสต๊อกรวมสุทธิ:</td>
+                        <td class="p-3 text-emerald-400 print:text-black text-sm" id="sum-total-cost">0.00</td>
                     </tr>
                 </tfoot>
             </table>
@@ -97,7 +106,6 @@
     <script>
         let allWines = [];
 
-        // เซ็ตวันที่ปัจจุบันสำหรับตอนสั่งพิมพ์
         const today = new Date();
         document.getElementById('print-date').innerText = `ข้อมูล ณ วันที่: ${today.toLocaleDateString('th-TH')} เวลา ${today.toLocaleTimeString('th-TH')}`;
 
@@ -107,8 +115,7 @@
                 allWines = await res.json();
                 renderTable();
             } catch (error) {
-                console.error('Error fetching data:', error);
-                document.getElementById('report-tbody').innerHTML = '<tr><td colspan="9" class="p-8 text-center text-red-500">❌ ไม่สามารถดึงข้อมูลได้</td></tr>';
+                document.getElementById('report-tbody').innerHTML = '<tr><td colspan="16" class="p-8 text-center text-red-500">❌ ไม่สามารถดึงข้อมูลได้</td></tr>';
             }
         }
 
@@ -117,21 +124,19 @@
             const kw = document.getElementById('search-input').value.toLowerCase();
             tbody.innerHTML = '';
 
-            let sumFront = 0, sumBack = 0, sumHome = 0, sumAll = 0;
+            let sumFront = 0, sumBack = 0, sumHome = 0, sumAll = 0, sumTotalCost = 0;
             let index = 1;
 
             const filteredWines = allWines.filter(w => 
                 (w.id && w.id.toLowerCase().includes(kw)) || 
                 (w.name && w.name.toLowerCase().includes(kw)) ||
-                (w.country && w.country.toLowerCase().includes(kw))
+                (w.country && w.country.toLowerCase().includes(kw)) ||
+                (w.region && w.region.toLowerCase().includes(kw))
             );
 
             if (filteredWines.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="p-8 text-center text-stone-500">ไม่พบรายการสินค้า</td></tr>';
-                document.getElementById('sum-front').innerText = '0';
-                document.getElementById('sum-back').innerText = '0';
-                document.getElementById('sum-home').innerText = '0';
-                document.getElementById('sum-all').innerText = '0';
+                tbody.innerHTML = '<tr><td colspan="16" class="p-8 text-center text-stone-500">ไม่พบรายการสินค้า</td></tr>';
+                document.getElementById('sum-total-cost').innerText = '0.00';
                 return;
             }
 
@@ -139,40 +144,22 @@
                 const qF = parseInt(wine.qty_front) || 0;
                 const qB = parseInt(wine.qty_back) || 0;
                 const qH = parseInt(wine.qty_home) || 0;
-                const total = qF + qB + qH;
+                const totalQty = qF + qB + qH;
+                const costPrice = parseFloat(wine.cost_price) || 0;
+                const sellPrice = parseFloat(wine.price) || 0;
+                const totalCost = totalQty * costPrice;
 
+                // สะสมยอดรวม
                 sumFront += qF;
                 sumBack += qB;
                 sumHome += qH;
-                sumAll += total;
+                sumAll += totalQty;
+                sumTotalCost += totalCost;
 
-                // สลับสีพื้นหลังของแถวตอนพิมพ์เพื่อให้ดูง่ายขึ้น (Zebra Striping)
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-stone-900/50 transition text-center print:nth-child(even):bg-gray-100';
                 
                 tr.innerHTML = `
-                    <td class="p-3 text-stone-400 print:text-black">${index++}</td>
-                    <td class="p-3 text-left font-mono text-pink-300 print:text-black">${wine.id || '-'}</td>
-                    <td class="p-3 text-left whitespace-normal min-w-[200px] text-stone-200 print:text-black">${wine.name || '-'}</td>
-                    <td class="p-3 text-stone-300 print:text-black">${wine.type || '-'}</td>
-                    <td class="p-3 text-stone-300 print:text-black">${wine.country || '-'}</td>
-                    <td class="p-3 text-right text-stone-200 print:text-black">${qF}</td>
-                    <td class="p-3 text-right text-stone-200 print:text-black">${qB}</td>
-                    <td class="p-3 text-right text-stone-200 print:text-black">${qH}</td>
-                    <td class="p-3 text-right font-bold text-pink-400 print:text-black">${total}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-
-            // อัปเดตยอดรวมด้านล่างตาราง
-            document.getElementById('sum-front').innerText = sumFront.toLocaleString();
-            document.getElementById('sum-back').innerText = sumBack.toLocaleString();
-            document.getElementById('sum-home').innerText = sumHome.toLocaleString();
-            document.getElementById('sum-all').innerText = sumAll.toLocaleString();
-        }
-
-        // โหลดข้อมูลเมื่อเปิดหน้า
-        fetchWines();
-    </script>
-</body>
-</html>
+                    <td class="p-2 text-stone-400 print:text-black">\${index++}</td>
+                    <td class="p-2 text-left font-mono text-pink-300 print:text-black">\${wine.id || '-'}</td>
+                    <td class="p-2 text-left text-stone-300 print:text-
